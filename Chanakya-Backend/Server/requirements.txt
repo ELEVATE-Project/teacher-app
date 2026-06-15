@@ -1,0 +1,68 @@
+# Chanakya Server Dependencies
+# ============================
+
+# Core
+pydantic>=2.5.0
+python-dateutil>=2.8.0
+numpy>=1.24.0
+
+# Sentence Transformers for RAG embeddings
+sentence-transformers>=2.2.0
+torch>=2.0.0
+
+# Gemini AI
+google-generativeai>=0.8.0
+google-genai>=1.0.0
+
+# LangGraph for orchestration
+langgraph>=1.0.0
+langchain-core>=0.3.72,<1.0.0
+
+# Async support
+aiohttp>=3.9.0
+aiosqlite>=0.19.0
+
+# Greenlet compatibility fix for Python 3.11+
+greenlet>=3.0.0
+
+# Caching
+cachetools>=5.3.0
+
+# Logging and monitoring
+structlog>=24.0.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Development
+python-dotenv>=1.0.0
+
+# Web Server (FastAPI)
+uvicorn>=0.27.0
+h11>=0.14.0
+fastapi>=0.109.0
+motor>=3.3.0
+beanie>=1.23.0
+python-jose[cryptography]>=3.3.0
+email-validator>=2.0.0
+bcrypt>=4.0.1
+python-multipart>=0.0.6
+httpx>=0.26.0
+sqlalchemy>=2.0.25
+
+# Twilio Integration
+twilio>=8.0.0
+
+# Sarvam AI
+sarvamai>=0.1.22
+
+# Export libraries (MODULE)
+reportlab>=4.0.0
+python-docx>=1.0.0
+python-pptx>=0.6.21
+
+# PDF compiler pipeline (used by pdf_compiler_service)
+pdfplumber>=0.10.0
+pymupdf>=1.23.0
+llama-cloud-services>=0.1.0

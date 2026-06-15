@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - ragflow
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ai-personalization:
+    build:
+      context: ./Backend/ai-personalization
+      dockerfile: Dockerfile
+    container_name: guru-ai-service
+    ports:
+      - "5001:5001"
+    env_file: .env
+    environment:
+      - RAGFLOW_CHAT_ID=${RAGFLOW_CHAT_ID}
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5001
+      - RAGFLOW_BASE_URL=${RAGFLOW_BASE_URL}
+    volumes:
+      - ./Backend/ai-personalization/chroma_db:/app/src/chroma_db
+      - ./Backend/ai-personalization/src/uploads:/app/src/uploads
+    networks:
+      - ragflow
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+networks:
+  ragflow:
+    driver: bridge
