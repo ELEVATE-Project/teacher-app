@@ -291,23 +291,37 @@ def chat_completion(
 ) -> Dict[str, Any]:
     cid = _resolve_chat_id(chat_id)
 
-    payload:Dict[str,Any] = {
-        "model": "model",
-        "messages": [{"role": "user", "content": question}],
-        "stream": False,
-        "extra_body": {
-            "reference": True,
-            "reference_metadata": {
-                "include": True
-            }
-        }
+    payload: Dict[str, Any] = {
+        "question": question,
+        "session_id": session_id,
+        "stream": False
     }
 
-    return _post(
-        f"/api/v1/openai/{cid}/chat/completions",
+    resp = _post(
+        f"/api/v1/chats/{cid}/completions",
         json=payload,
         timeout=90,
     ).json()
+
+    if resp.get("code", 0) != 0:
+        raise Exception(resp.get("message") or f"RAGFlow API error (code {resp.get('code')})")
+
+    data = resp.get("data") or {}
+    answer = data.get("answer", "")
+    reference = data.get("reference") or []
+
+    return {
+        "choices": [
+            {
+                "message": {
+                    "content": answer,
+                    "extra_body": {
+                        "reference": reference
+                    }
+                }
+            }
+        ]
+    }
 
 
 def chat_completion_stream(
@@ -320,29 +334,22 @@ def chat_completion_stream(
     cid = _resolve_chat_id(chat_id)
 
     payload: Dict[str, Any] = {
-        "model": "model",
-        "messages": [{"role": "user", "content": question}],
-        "stream": True,
-        "extra_body": {
-            "reference": True,
-            "reference_metadata": {
-                "include": True
-            }
-        }
+        "question": question,
+        "session_id": session_id,
+        "stream": True
     }
 
-    if session_id:
-        payload["session_id"] = session_id
-
-    if "dataset_ids" in kwargs and kwargs["dataset_ids"]:
-        payload["dataset_ids"] = kwargs["dataset_ids"]
-
     resp = _post(
-        f"/api/v1/openai/{cid}/chat/completions",
+        f"/api/v1/chats/{cid}/completions",
         json=payload,
         stream=True,
         timeout=120,
     )
+    if "json" in resp.headers.get("Content-Type", "").lower():
+        err_data = resp.json()
+        if err_data.get("code", 0) != 0:
+            raise Exception(err_data.get("message") or f"RAGFlow API error (code {err_data.get('code')})")
+
     references = []
 
     for chunk in resp.iter_lines():
@@ -359,13 +366,21 @@ def chat_completion_stream(
         
         try:
             data = json.loads(data_str)
-            
-            delta = data.get("choices", [{}])[0].get("delta") or {}
-            ref = delta.get("reference") or []
+            chunk_data = data.get("data") or {}
+            answer = chunk_data.get("answer", "")
+            ref = chunk_data.get("reference") or []
             if ref:
                 references = ref
             
-            yield f"data: {data_str}\n\n"
+            # Map stateful chunk format to expected OpenAI format
+            openai_chunk = {
+                "choices": [{
+                    "delta": {
+                        "content": answer
+                    }
+                }]
+            }
+            yield f"data: {json.dumps(openai_chunk)}\n\n"
         except json.JSONDecodeError:
             continue
     

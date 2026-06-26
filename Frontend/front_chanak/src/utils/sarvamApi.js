@@ -4,7 +4,7 @@
  * Supports all Indian languages offered by Sarvam AI
  */
 
-const SARVAM_API_KEY = import.meta.env.VITE_SARVAM_API_KEY || "sk_5j1nftps_Cat40uT2j5qFtBHB53FGCq33";
+const SARVAM_API_KEY = import.meta.env.VITE_SARVAM_API_KEY || "";
 
 // STT endpoints from Sarvam docs (we keep these fixed to avoid 404s)
 const SARVAM_STT_TRANSCRIBE_URL = "https://api.sarvam.ai/speech-to-text";

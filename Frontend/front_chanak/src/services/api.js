@@ -11,7 +11,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 180000, // 180 seconds for long-running queries
+  timeout: 600000, // 600 seconds (10 minutes) for long-running queries
 });
 
 // Request interceptor
@@ -58,6 +58,9 @@ export const queryOrchestrator = async (query, context = {}) => {
   };
   if (context.document_id) {
     body.document_id = context.document_id;
+  }
+  if (context.selected_tool) {
+    body.selected_tool = context.selected_tool;
   }
   const response = await apiClient.post('/api/query/query', body);
   return response.data;
@@ -144,8 +147,9 @@ export const getUserProfile = async () => {
 /**
  * Chat History - Get recent sessions for authenticated user
  */
-export const getChatHistory = async (limit = 20) => {
-  const response = await apiClient.get(`/api/chat/history?limit=${limit}`);
+export const getChatHistory = async (limit = 20, tool = '') => {
+  const url = tool ? `/api/chat/history?limit=${limit}&tool=${tool}` : `/api/chat/history?limit=${limit}`;
+  const response = await apiClient.get(url);
   return response.data;
 };
 

@@ -85,27 +85,28 @@ class Slide(BaseModel):
 
 
 class Lesson(BaseModel):
-    """Complete 8-slide lesson."""
+    """Complete 2-slide lesson."""
     id: Optional[str] = Field(None, description="Unique lesson identifier")
     class_name: str = Field(..., description="Class/grade level", min_length=1)
     subject: str = Field(..., description="Subject name", min_length=1)
     topic: str = Field(..., description="Topic/chapter name", min_length=1)
-    slides: List[Slide] = Field(..., description="Exactly 8 slides")
+    slides: List[Slide] = Field(..., description="Up to 8 slides")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     teacher_id: Optional[str] = Field(None, description="ID of teacher who created this")
     validation_score: float = Field(..., ge=0.0, le=1.0, description="Hallucination check score")
+    ragflow_session_id: Optional[str] = Field(None, description="RAGFlow session ID associated with this lesson")
 
     @field_validator('slides')
     @classmethod
-    def validate_exactly_8_slides(cls, v: List[Slide]) -> List[Slide]:
-        """Ensure lesson has exactly 8 slides."""
-        if len(v) != 8:
-            raise ValueError(f"Lesson must have exactly 8 slides, got {len(v)}")
+    def validate_up_to_8_slides(cls, v: List[Slide]) -> List[Slide]:
+        """Ensure lesson has between 1 and 8 slides."""
+        if not (1 <= len(v) <= 8):
+            raise ValueError(f"Lesson must have between 1 and 8 slides, got {len(v)}")
         return v
 
     @model_validator(mode='after')
     def validate_slide_numbers(self) -> 'Lesson':
-        """Ensure slides are numbered 1-8 in order."""
+        """Ensure slides are numbered sequentially starting from 1."""
         for i, slide in enumerate(self.slides, 1):
             if slide.slide_number != i:
                 raise ValueError(f"Slide {i} has incorrect slide_number: {slide.slide_number}")
@@ -242,3 +243,4 @@ class LessonGenerationResponse(BaseModel):
     dataset_name: Optional[str] = Field(None, description="RAGFlow dataset name used for retrieval")
     rag_chunks_used: Optional[int] = Field(None, description="Number of retrieved context chunks used")
     saved_id: Optional[str] = Field(None, description="Persisted lesson identifier when save=true")
+    ragflow_session_id: Optional[str] = Field(None, description="New RAGFlow chat session ID created for this lesson")

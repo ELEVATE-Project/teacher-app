@@ -7,12 +7,13 @@ from typing import Optional
 from config import settings
 
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(user_id: str, role: Optional[str] = None) -> str:
     """
     Create a JWT access token.
     
     Args:
         user_id: User ID to encode in token
+        role: Optional role of the user (e.g. admin, teacher)
         
     Returns:
         Encoded JWT token string
@@ -23,6 +24,8 @@ def create_access_token(user_id: str) -> str:
         "exp": expire,
         "iat": datetime.utcnow()
     }
+    if role:
+        to_encode["role"] = role
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 

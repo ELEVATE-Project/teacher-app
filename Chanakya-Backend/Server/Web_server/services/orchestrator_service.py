@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from cachetools import TTLCache
 from orchestrator import ChanakyaOrchestrator
 from orchestrator.schemas import OrchestratorInput
+# pyrefly: ignore [missing-import]
 import structlog
 from fastapi import HTTPException
 from config import settings
@@ -81,16 +82,22 @@ class OrchestratorService:
     def initialize(self):
         """Initialize the ChanakyaOrchestrator with API key."""
         try:
-            if not settings.GEMINI_API_KEY:
-                logger.error("GEMINI_API_KEY not found in configuration")
-                raise ValueError("GEMINI_API_KEY is required for orchestrator initialization")
+            api_key = os.getenv("OPENROUTER_API_KEY") or settings.GEMINI_API_KEY
+            if not api_key:
+                logger.error("Neither OPENROUTER_API_KEY nor GEMINI_API_KEY found in configuration")
+                raise ValueError("An API key (OPENROUTER_API_KEY or GEMINI_API_KEY) is required for orchestrator initialization")
             
             logger.info("Initializing ChanakyaOrchestrator")
-            self.orchestrator = ChanakyaOrchestrator(api_key=settings.GEMINI_API_KEY)
+            self.orchestrator = ChanakyaOrchestrator(api_key=api_key)
             self.initialized = True
             logger.info("ChanakyaOrchestrator initialized successfully")
             
         except Exception as e:
+            import traceback
+            print("="*80)
+            print("❌ OrchestratorService.initialize failed:")
+            traceback.print_exc()
+            print("="*80)
             logger.error(f"Failed to initialize orchestrator: {str(e)}")
             raise
     
@@ -153,7 +160,113 @@ class OrchestratorService:
                     error=str(e),
                 )
         
-        # Return cached response for repeated identical query (no LLM call)
+        # Direct Tool Selection (Bypass Orchestrator Routing/Graph)
+        selected_tool = getattr(query_request, "selected_tool", None) or (query_request.context and query_request.context.get("selected_tool"))
+        if selected_tool:
+            if selected_tool == "general":
+                selected_tool = "general_conversation"
+                
+            # Enforce strict scope in locked modes
+            is_in_scope, warning_msg = await self._check_query_scope(query_request.query, selected_tool)
+            if not is_in_scope:
+                # Save user message to database history
+                if query_request.session_id and self.orchestrator.storage:
+                    await self.orchestrator.storage.add_message(query_request.session_id, "user", query_request.query)
+                # Save warning response to database history
+                if query_request.session_id and self.orchestrator.storage:
+                    metadata = {
+                        "tool_used": selected_tool,
+                        "reasoning": f"Query out of scope for locked tool {selected_tool}",
+                        "confidence": 1.0,
+                        "result": {"response": warning_msg},
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    await self.orchestrator.storage.add_message(query_request.session_id, "assistant", warning_msg, metadata=metadata)
+                
+                return QueryResponse(
+                    success=False,
+                    tool_used=selected_tool,
+                    reasoning=f"Query out of scope for locked tool {selected_tool}",
+                    result={"response": warning_msg},
+                    confidence=1.0,
+                    processing_time_ms=0.0,
+                    timestamp=datetime.utcnow(),
+                    error=warning_msg
+                )
+                
+            start_time = time.time()
+            try:
+                logger.info(
+                    "Direct tool execution (bypassing orchestrator)",
+                    tool=selected_tool,
+                    query=query_request.query[:100],
+                    session_id=query_request.session_id
+                )
+                
+                if selected_tool not in self.orchestrator.tools:
+                    raise ValueError(f"Unknown tool requested: {selected_tool}")
+                
+                tool = self.orchestrator.tools[selected_tool]
+                
+                # Setup context
+                context = dict(query_request.context or {})
+                context['session_id'] = query_request.session_id or "default"
+                if getattr(query_request, "document_id", None):
+                    context["document_id"] = query_request.document_id
+                
+                # Save user message to database history
+                if query_request.session_id and self.orchestrator.storage:
+                    await self.orchestrator.storage.add_message(query_request.session_id, "user", query_request.query)
+                
+                # Run the tool directly
+                result = await tool.run(query_request.query, context)
+                
+                # Serialize result properly
+                result_dict = result
+                if hasattr(result, 'model_dump'):
+                    result_dict = result.model_dump()
+                elif hasattr(result, 'dict'):
+                    result_dict = result.dict()
+                elif not isinstance(result_dict, dict):
+                    result_dict = {"response": str(result_dict)}
+                
+                # Save assistant message to database history
+                if query_request.session_id and self.orchestrator.storage:
+                    assistant_message = result_dict.get("response") or result_dict.get("explanation") or result_dict.get("description") or f"Generated {selected_tool}"
+                    metadata = {
+                        "tool_used": selected_tool,
+                        "reasoning": f"Bypassed orchestrator: ran {selected_tool} directly",
+                        "confidence": 1.0,
+                        "result": result_dict,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    await self.orchestrator.storage.add_message(query_request.session_id, "assistant", assistant_message, metadata=metadata)
+                
+                processing_time_ms = (time.time() - start_time) * 1000
+                
+                return QueryResponse(
+                    success=True,
+                    tool_used=selected_tool,
+                    reasoning=f"Bypassed orchestrator: ran {selected_tool} directly",
+                    result=result_dict,
+                    confidence=1.0,
+                    processing_time_ms=processing_time_ms,
+                    timestamp=datetime.utcnow(),
+                    error=None
+                )
+            except Exception as e:
+                processing_time_ms = (time.time() - start_time) * 1000
+                logger.error(f"Direct tool execution failed: {e}", exc_info=True)
+                return QueryResponse(
+                    success=False,
+                    tool_used=selected_tool,
+                    reasoning=f"Bypassed orchestrator: direct execution of {selected_tool} failed",
+                    result={"error": str(e)},
+                    confidence=0.0,
+                    processing_time_ms=processing_time_ms,
+                    timestamp=datetime.utcnow(),
+                    error=str(e)
+                )
         if self._cache_enabled and self._query_cache is not None:
             key = _query_cache_key(query_request)
             with self._cache_lock:
@@ -179,7 +292,8 @@ class OrchestratorService:
             orchestrator_input = OrchestratorInput(
                 query=query_request.query,
                 context=context,
-                session_id=query_request.session_id or "default"
+                session_id=query_request.session_id or "default",
+                selected_tool=getattr(query_request, "selected_tool", None)
             )
 
             # Process the query
@@ -347,6 +461,69 @@ class OrchestratorService:
         except Exception as e:
             logger.error(f"Error deleting session: {str(e)}")
             return False
+
+    async def _check_query_scope(self, query: str, tool_name: str) -> tuple[bool, str]:
+        """
+        Verify if the query is in scope for the strictly locked mode.
+        Returns: (is_in_scope, warning_message)
+        """
+        # Always allow small talk and greetings
+        query_lower = query.strip().lower()
+        greetings = ["hi", "hello", "hey", "thanks", "thank you", "good morning", "good afternoon", "namaste", "yes", "no"]
+        if query_lower in greetings or len(query_lower) < 4:
+            return True, ""
+
+        # Map tool to scope description and user-friendly name
+        tool_scopes = {
+            "module_builder": {
+                "desc": "creating teaching modules, lesson plans, slide outlines, course structures, teaching chapters, syllabus guides",
+                "friendly": "Module Creator",
+                "warning": "This chat is strictly dedicated to creating teaching modules and lesson plans. If you'd like to ask general questions, create classroom games, or handle a classroom crisis, please start a new chat in that mode or change the mode using the dropdown."
+            },
+            "activity_generator": {
+                "desc": "classroom games, interactive activities, learning projects, math/science experiments or demonstrations",
+                "friendly": "Activity Generator",
+                "warning": "This chat is strictly dedicated to generating classroom activities and games. If you'd like to create a module/lesson plan, ask educational questions, or handle a classroom crisis, please start a new chat in that mode or change the mode using the dropdown."
+            },
+            "expert_teacher": {
+                "desc": "explaining educational concepts, answering curriculum questions, general knowledge, teaching strategy advice",
+                "friendly": "Expert Q&A",
+                "warning": "This chat is strictly dedicated to educational Q&A and concept explanations. If you'd like to create a lesson module or generate classroom games, please start a new chat in that mode or change the mode using the dropdown."
+            }
+        }
+
+        if tool_name not in tool_scopes:
+            return True, ""
+
+        scope_info = tool_scopes[tool_name]
+        prompt = f"""You are an educational assistant quality checker.
+The current chat interface is strictly locked to: '{scope_info["friendly"]}' which is for: {scope_info["desc"]}.
+The teacher entered this query: "{query}"
+
+Determine if this query is relevant to this locked scope or if it is asking for something completely different (like classroom crisis management, teacher motivation, resource finder, or general unrelated topics).
+
+Answer with ONLY "YES" or "NO".
+
+Is the query within the scope of '{scope_info["friendly"]}'?"""
+
+        try:
+            from google.genai import types
+            response = await self.orchestrator.client.aio.models.generate_content(
+                model=self.orchestrator.model_name,
+                contents=[prompt],
+                config=types.GenerateContentConfig(
+                    temperature=0.0,
+                    max_output_tokens=5,
+                )
+            )
+            ans = response.text.strip().lower()
+            if "no" in ans:
+                return False, scope_info["warning"]
+        except Exception as e:
+            logger.error(f"Error checking query scope: {str(e)}")
+        
+        return True, ""
+
 
 
 # Global instance

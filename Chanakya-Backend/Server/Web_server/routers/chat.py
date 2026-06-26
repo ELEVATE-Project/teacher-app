@@ -22,7 +22,8 @@ router = APIRouter()
 async def get_chat_history(
     user_id: str = Depends(get_current_user_id),
     limit: int = Query(20, ge=1, le=100, description="Number of sessions to return"),
-    skip: int = Query(0, ge=0, description="Number of sessions to skip")
+    skip: int = Query(0, ge=0, description="Number of sessions to skip"),
+    tool: Optional[str] = Query(None, description="Filter sessions by tool scope")
 ):
     """
     Get chat session history for the authenticated user.
@@ -31,6 +32,7 @@ async def get_chat_history(
         user_id: Current user ID from token
         limit: Maximum number of sessions to return
         skip: Number of sessions to skip (for pagination)
+        tool: Optional tool scope to filter by
         
     Returns:
         ChatHistoryResponse with list of sessions
@@ -39,7 +41,8 @@ async def get_chat_history(
         sessions, total = await ChatService.get_user_sessions(
             user_id=user_id,
             limit=limit,
-            skip=skip
+            skip=skip,
+            tool=tool
         )
         
         return ChatHistoryResponse(

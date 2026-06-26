@@ -217,16 +217,20 @@ async def process_query(
         QueryResponse with the orchestrator's response
     """
     try:
+        active_tool = query_request.selected_tool or (query_request.context.get("selected_tool") if query_request.context else "dynamic")
+        print(f"\n[DEBUG] BACKEND: Active Screen: Chat Interface | Mode/Tool Activated: {active_tool} | Query: {query_request.query[:60]}\n")
         logger.info("Received query request", 
                    query=query_request.query[:100], 
                    user_id=user_id,
                    session_id=query_request.session_id)
 
         if query_request.session_id:
+            selected_tool = query_request.selected_tool or (query_request.context.get("selected_tool") if query_request.context else None)
             await ChatService.get_or_create_session(
                 session_id=query_request.session_id,
                 user_id=user_id,
                 ragflow_context=query_request.context or {},
+                tool=selected_tool
             )
         
         if not orchestrator_service.is_ready():

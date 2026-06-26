@@ -15,6 +15,7 @@ from .general_conversation import GeneralConversationTool
 from .quick_answer import QuickAnswerTool
 from .resource_finder import ResourceFinderTool
 from .feedback_response import FeedbackResponseTool
+from .module_builder import ModuleBuilderTool
 
 __all__ = [
     "ActivityGeneratorTool",
@@ -27,4 +28,5 @@ __all__ = [
     "QuickAnswerTool",
     "ResourceFinderTool",
     "FeedbackResponseTool",
+    "ModuleBuilderTool",
 ]

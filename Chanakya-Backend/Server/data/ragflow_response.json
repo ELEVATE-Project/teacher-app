@@ -1,0 +1,626 @@
+{
+  "code": 0,
+  "data": {
+    "chunks": [
+      {
+        "content": "\n1.6 HANDLING EXCEPTIONS\nEach and every exception has to be handled by the programmer to avoid 1 the program from crashing abruptly. This is done by writing additional code in a program to give proper messages or instructions to the user on encountering an exception. This process is known as exception handling.\n1.6.1 Need for Exception Handling\nException handling is being used not only in Python programming but in most programming languages like C++, Java, Ruby, etc. It is a useful technique that helps in capturing runtime errors and handling them so as to avoid the program getting crashed. Following are some\nof the important points regarding exceptions and their handling:\nPython categorises exceptions into distinct types so that specific exception handlers (code to handle that particular exception) can be created for each type.\nException handlers separate the main logic of the program from the error detection and correction code. The segment of code where there is any possibility of error or exception, is placed inside one block. The code to be executed in case the exception has occurred, is placed inside another block. These statements for detection and reporting the exception do not affect the main logic of the program.\nThe compiler or interpreter keeps track of the exact position where the error has occurred.\nException handling can be done for both user-defined and built-in exceptions.\n1.6.2 Process of Handling Exception\nWhen an error occurs, Python interpreter creates an object called the exception object. This object contains information about the error like its type, file name and position in the program where the error has occurred.\nThe object is handed over to the runtime system so that\nA runtime system\nit can find an appropriate code to handle this particular\nrefers to the\nexception. This process of creating an exception object\nexecution of the\nand handing it over to the runtime system is called\nstatements given in the program. It is a\nthrowing an exception. It is important to note that\ncomplex mechanism\nwhen an exception occurs while executing a particular\nconsisting of\nprogram statement, the control jumps to an exception\nhardware and\ng  executionof  theremaining\nhandler,  abandoning\nsoftware that comes into action\nprogram statements.\nas soon as the\nThe runtime system searches the entire program\nprogram, written in any programming\nfor a block of code, called the exception handler that\nlanguage, is put for\ncan handle the raised exception. It first searches for\nexecution.\nthe method in which the error has occurred and the exception has been raised. If not found, then it searches the method from which this method (in which exception was raised) was called. This hierarchical search in reverse order continues till the exception handler is found. This entire list of methods is known as call stack.",
+        "content_ltks": "16 handl except each and everi except ha to be handl by the programm to avoid 1 the program from crash abrupt this is done by write addit code in a program to give proper messag or instruct to the user on encount an except this process is known a except handl 161 need for except handl except handl is be use not onli in python program but in most program languag like c java rubi etc it is a use techniqu that help in captur runtim error and handl them so a to avoid the program get crash follow are some of the import point regard except and their handl python categoris except into distinct type so that specif except handler code to handl that particular except can be creat for each type except handler separ the main logic of the program from the error detect and correct code the segment of code where there is ani possibl of error or except is place insid one block the code to be execut in case the except ha occur is place insid anoth block these statement for detect and report the except do not affect the main logic of the program the compil or interpret keep track of the exact posit where the error ha occur except handl can be done for both user defin and built in except 16 2 process of handl except when an error occur python interpret creat an object call the except object this object contain inform about the error like it type file name and posit in the program where the error ha occur the object is hand over to the runtim system so that a runtim system it can find an appropri code to handl this particular refer to the except this process of creat an except object execut of the and hand it over to the runtim system is call statement given in the program it is a throw an except it is import to note that complex mechan when an except occur while execut a particular consist of program statement the control jump to an except hardwar and g executionof theremain handler abandon softwar that come into action program statement a soon a the the runtim system search the entir program program written in ani program for a block of code call the except handler that languag is put for can handl the rais except it first search for execut the method in which the error ha occur and the except ha been rais if not found then it search the method from which this method in which except wa rais wa call this hierarch search in revers order continu till the except handler is found this entir list of method is known a call stack",
+        "dataset_id": "1a0ce14c664811f1a49727756bfeeac2",
+        "doc_type_kwd": "",
+        "document_id": "bdf3bee2666711f1a49727756bfeeac2",
+        "document_keyword": "tmpg98lvkev.pdf",
+        "id": "87705fcc151f5eba",
+        "image_id": "1a0ce14c664811f1a49727756bfeeac2-87705fcc151f5eba",
+        "important_keywords": [],
+        "mom_id": "",
+        "positions": [
+          [
+            7,
+            60,
+            224,
+            481,
+            495
+          ],
+          [
+            7,
+            57,
+            386,
+            504,
+            589
+          ],
+          [
+            7,
+            59,
+            277,
+            598,
+            612
+          ],
+          [
+            7,
+            57,
+            386,
+            619,
+            691
+          ],
+          [
+            8,
+            208,
+            533,
+            52,
+            80
+          ],
+          [
+            8,
+            225,
+            535,
+            86,
+            130
+          ],
+          [
+            8,
+            226,
+            535,
+            136,
+            251
+          ],
+          [
+            8,
+            226,
+            533,
+            259,
+            286
+          ],
+          [
+            8,
+            227,
+            533,
+            292,
+            322
+          ],
+          [
+            8,
+            208,
+            437,
+            333,
+            347
+          ],
+          [
+            8,
+            208,
+            535,
+            352,
+            409
+          ],
+          [
+            8,
+            208,
+            535,
+            409,
+            423
+          ],
+          [
+            8,
+            206,
+            535,
+            422,
+            439
+          ],
+          [
+            8,
+            209,
+            534,
+            439,
+            453
+          ],
+          [
+            8,
+            209,
+            533,
+            453,
+            467
+          ],
+          [
+            8,
+            76,
+            174,
+            453,
+            477
+          ],
+          [
+            8,
+            207,
+            535,
+            465,
+            481
+          ],
+          [
+            8,
+            207,
+            533,
+            481,
+            495
+          ],
+          [
+            8,
+            207,
+            534,
+            497,
+            511
+          ],
+          [
+            8,
+            337,
+            536,
+            509,
+            524
+          ],
+          [
+            8,
+            227,
+            535,
+            548,
+            562
+          ],
+          [
+            8,
+            209,
+            534,
+            564,
+            575
+          ],
+          [
+            8,
+            209,
+            535,
+            577,
+            591
+          ],
+          [
+            8,
+            206,
+            535,
+            593,
+            676
+          ]
+        ],
+        "row_id": null,
+        "similarity": 0.33554647049362774,
+        "tag_kwd": [],
+        "term_similarity": 0.16666666770833335,
+        "vector_similarity": 0.7295993436593147
+      },
+      {
+        "content": "\nAn exception is a Python object that represents an error.\nSyntax errors are also handled as exceptions.\nTheexception needs\nto be handled bythe\nprogrammer so that\nthe program does not\nterminate abruptly.\nWhen an exception occurs during execution of a program and there is a built-in exception defined for that, the error message written in that exception is displayed. The programmer then has to take appropriate action and handle it.\nSomeof thecommonly\n built-inoccurring\nValueError,\nexceptions are SyntaxError, IOError\uff0c KeyboardInterrupt\uff0c ImportError, EOFError\uff0c ZeroDivisionError, IndexError, NameError,IndentationError, TypeError,and OverFlowerror.\nWhen an error is encountered in a program, Python interpreter raises or throws an exception.\nException Handlers are the codes that are designed to execute when a specific exception is raised.\nRaising an exception involves interrupting the normal fow of the program execution and jumping to the exception handler.\nRaise and assert statements are used to raise exceptions.\nThe process of exception handling involves writing additional code to give proper messages or instructions to the user. This prevents the program from crashing abruptly. The additional code is known as an exception handler.\nAn exception is said to be caught when a code that is designed to handle a particular exception is executed.\nAn exception is caught in the try block\nand\nhandles in except block.\nThe statements inside the finally block are always executed regardless of whether an exception occurred in the try block or not.\nEXERCISE\n\"Every syntax error is an exception but every exception1.\ncannot be a syntax error.\" Justify the statement.\n2.When are the following built-in exceptions raised? Give examples to support your answers.\na) ImportError b) IOError c) NameError d) ZeroDivisionError\n3. What is the use of a raise statement? Write a code to accept two numbers and display the quotient. Appropriate exception should be raised if the user enters the second number (denominator) as zero (0).\n4. Use assert statement in Question No. 3 to test t\nthe\ndivision expression in the program.\nDefine the following:5.1 a) Exception Handling b)  Throwing an exception c) Catching an exception\n Explain catching exceptions using try and except block6.1\n7. Consider the code given below and fill in the blanks.\nprint \uff08\" Learning Exceptions...\") try: numl= int(input (\"Enter the first number\")) num2=int(input(\"Enter the Second number\")) quotient=(numl/num2) print (\"Both the numbers entered were correct\") # to enter only integers except \uff1a Please enter only numbers\") print \" # Denominator should not be zero except print(\" Number 2 should not be zero\") else: print(\" Great .. you are a good programmer\")",
+        "content_ltks": "an except is a python object that repres an error syntax error are also handl a except theexcept need to be handl byth programm so that the program doe not termin abrupt when an except occur dure execut of a program and there is a built in except defin for that the error messag written in that except is display the programm then ha to take appropri action and handl it someof thecommon built inoccur valueerror except are syntaxerror ioerror keyboardinterrupt importerror eoferror zerodivisionerror indexerror nameerror indentationerror typeerror and overflowerror when an error is encount in a program python interpret rais or throw an except except handler are the code that are design to execut when a specif except is rais rais an except involv interrupt the normal fow of the program execut and jump to the except handler rais and assert statement are use to rais except the process of except handl involv write addit code to give proper messag or instruct to the user this prevent the program from crash abrupt the addit code is known a an except handler an except is said to be caught when a code that is design to handl a particular except is execut an except is caught in the tri block and handl in except block the statement insid the final block are alway execut regardless of whether an except occur in the tri block or not exercis everi syntax error is an except but everi exception1 can not be a syntax error justifi the statement 2 when are the follow built in except rais give exampl to support your answer a importerror b ioerror c nameerror d zerodivisionerror 3 what is the use of a rais statement write a code to accept two number and display the quotient appropri except should be rais if the user enter the second number denomin a zero 0 4 use assert statement in question no 3 to test t the divis express in the program defin the follow 51 a except handl b throw an except c catch an except explain catch except use tri and except block6 17 consid the code given below and fill in the blank print learn except tri numl int input enter the first number num2 int input enter the second number quotient numl num2 print both the number enter were correct to enter onli integ except pleas enter onli number print denomin should not be zero except print number 2 should not be zero els print great you are a good programm",
+        "dataset_id": "1a0ce14c664811f1a49727756bfeeac2",
+        "doc_type_kwd": "",
+        "document_id": "bdf3bee2666711f1a49727756bfeeac2",
+        "document_keyword": "tmpg98lvkev.pdf",
+        "id": "22c168fa67ec1120",
+        "image_id": "1a0ce14c664811f1a49727756bfeeac2-22c168fa67ec1120",
+        "important_keywords": [],
+        "mom_id": "",
+        "positions": [
+          [
+            16,
+            236,
+            528,
+            135,
+            164
+          ],
+          [
+            16,
+            237,
+            505,
+            169,
+            183
+          ],
+          [
+            16,
+            235,
+            529,
+            234,
+            305
+          ],
+          [
+            16,
+            235,
+            529,
+            324,
+            388
+          ],
+          [
+            16,
+            236,
+            527,
+            392,
+            419
+          ],
+          [
+            16,
+            235,
+            529,
+            424,
+            466
+          ],
+          [
+            16,
+            235,
+            529,
+            470,
+            509
+          ],
+          [
+            16,
+            236,
+            528,
+            514,
+            541
+          ],
+          [
+            16,
+            236,
+            529,
+            546,
+            614
+          ],
+          [
+            16,
+            236,
+            528,
+            619,
+            660
+          ],
+          [
+            16,
+            236,
+            499,
+            664,
+            678
+          ],
+          [
+            17,
+            87,
+            378,
+            58,
+            99
+          ],
+          [
+            17,
+            82,
+            92,
+            167,
+            178
+          ],
+          [
+            17,
+            84,
+            344,
+            180,
+            192
+          ],
+          [
+            17,
+            64,
+            384,
+            198,
+            224
+          ],
+          [
+            17,
+            81,
+            198,
+            223,
+            276
+          ],
+          [
+            17,
+            63,
+            386,
+            282,
+            335
+          ],
+          [
+            17,
+            62,
+            370,
+            337,
+            351
+          ],
+          [
+            17,
+            80,
+            223,
+            369,
+            422
+          ],
+          [
+            17,
+            80,
+            90,
+            427,
+            439
+          ],
+          [
+            17,
+            62,
+            365,
+            443,
+            457
+          ],
+          [
+            17,
+            93,
+            479,
+            459,
+            648
+          ]
+        ],
+        "row_id": null,
+        "similarity": 0.33072719849604615,
+        "tag_kwd": [],
+        "term_similarity": 0.16666666770833335,
+        "vector_similarity": 0.7135351036673762
+      },
+      {
+        "content": "\nScientists have catalogued about 1.4 million living species with which mankind shares the earth. Estimates vary widely as regards the still-uncatalogued living species \u2014 biologists reckon that about three to a hundred million other living species still languish unnamed in ignominious darkness.\nOne of the early international commissions which dealt, inter alia, with the question of ecology and environment was the Brandt Commission which had a distinguished Indian as one of its members \u2014 Mr L.K. Jha. The First Brandt Report raised the question \u2014\u201cAre we to leave our successors a scorched planet of advancing deserts, impoverished landscapes and ailing environment?\"\nMr Lester R. Brown in his thoughtful book, The Global Economic Prospect, points out that the earth's principal biological systems are four \u2014 fisheries, forests, grasslands, and croplands \u2014 and they form the foundation of the global\nTHE AILING PLANET: THE GREEN MOVEMENT'S ROLE\neconomic system. In addition to supplying our food, these four systems provide virtually all the raw materials for industry except minerals and petroleum-derived synthetics. In large areas of the world, human claims on these systems are reaching an unsustainable level, a point where their productivity is being impaired. When this happens, fisheries collapse, forests disappear, grasslands are converted into barren wastelands, and croplands deteriorate. In a protein-conscious and protein- hungry world, over-fishing is common every day. In poor countries, local forests are being decimated in order to procure firewood for cooking. In some places, firewood has become so expensive that \"what goes under the pot now costs more than what goes inside it\". Since the tropical forest is, in the words of Dr Myers, \"the powerhouse of evolution\", several species of life face extinction as a result of its destruction.\nIt has been well said that forests precede mankind; deserts follow. The world's ancient patrimony of tropical forests is now eroding at the rate of forty to fifty million acres a year, and the growing use of dung for burning deprives the soil of an important natural fertiliser. The World Bank estimates that a five-fold increase in the rate of forest planting is needed to cope with the expected fuelwood demand in the year 2000.\nJames Speth,the President of the World Resources Institute, said the other day, \u201cWe were saying that we are losing the forests at an acre a second, but it is much closer to an acre-and-a-half to a second\".",
+        "content_ltks": "scientist have catalogu about 1 4 million live speci with which mankind share the earth estim vari wide a regard the still uncatalogu live speci biologist reckon that about three to a hundr million other live speci still languish unnam in ignomini dark one of the earli intern commiss which dealt inter alia with the question of ecolog and environ wa the brandt commiss which had a distinguish indian a one of it member mr l k jha the first brandt report rais the question are we to leav our successor a scorch planet of advanc desert impoverish landscap and ail environ mr lester r brown in his thought book the global econom prospect point out that the earth s princip biolog system are four fisheri forest grassland and cropland and they form the foundat of the global the ail planet the green movement s role econom system in addit to suppli our food these four system provid virtual all the raw materi for industri except miner and petroleum deriv synthet in larg area of the world human claim on these system are reach an unsustain level a point where their product is be impair when this happen fisheri collaps forest disappear grassland are convert into barren wasteland and cropland deterior in a protein conscious and protein hungri world over fish is common everi day in poor countri local forest are be decim in order to procur firewood for cook in some place firewood ha becom so expens that what go under the pot now cost more than what go insid it sinc the tropic forest is in the word of dr myer the powerhous of evolut sever speci of life face extinct a a result of it destruct it ha been well said that forest preced mankind desert follow the world s ancient patrimoni of tropic forest is now erod at the rate of forti to fifti million acr a year and the grow use of dung for burn depriv the soil of an import natur fertilis the world bank estim that a five fold increas in the rate of forest plant is need to cope with the expect fuelwood demand in the year 2000 jame speth the presid of the world resourc institut said the other day we were say that we are lose the forest at an acr a second but it is much closer to an acr and a half to a second",
+        "dataset_id": "1a0ce14c664811f1a49727756bfeeac2",
+        "doc_type_kwd": "",
+        "document_id": "932cdf9e664a11f1a49727756bfeeac2",
+        "document_keyword": "tmpoyo4u9_q.pdf",
+        "id": "f63da5065176f386",
+        "image_id": "1a0ce14c664811f1a49727756bfeeac2-f63da5065176f386",
+        "important_keywords": [],
+        "mom_id": "",
+        "positions": [
+          [
+            54,
+            70,
+            397,
+            398,
+            461
+          ],
+          [
+            54,
+            69,
+            397,
+            462,
+            548
+          ],
+          [
+            54,
+            71,
+            397,
+            549,
+            600
+          ],
+          [
+            55,
+            71,
+            276,
+            60,
+            69
+          ],
+          [
+            55,
+            69,
+            397,
+            82,
+            271
+          ],
+          [
+            55,
+            69,
+            397,
+            272,
+            359
+          ],
+          [
+            55,
+            69,
+            397,
+            362,
+            411
+          ]
+        ],
+        "row_id": null,
+        "similarity": 0.3294120470745605,
+        "tag_kwd": [],
+        "term_similarity": 0.16666666770833335,
+        "vector_similarity": 0.7091512655957573
+      },
+      {
+        "content": "\n>>> raise Exception (\"oops!l An Exception has occurred\") Traceback (most recent call last): File \"<pyshell#0>\", line 1, in <module> raise Exception (\"ooPs!! An Exception has occurred\") Exception: oops!!An Exception has occurred >>>\nThe error detected may be a built-in exception or may be a user-defined one. Consider the example given in Figure 1.6 that uses the raise statement to raise a built-in exception called IndexError.\nNote: In this case, the user has only raised the exception but has not displayed any error message explicitly.\nIn Figure 1.6, since the value of variable length is greater than the length of the list numbers, an IndexError exception will be raised. The statement following the raise statement will not be executed. So the message \u201cNO EXECUTION\" will not be displayed in this case.\nAs we can see in Figure 1.6, in addition to the error message displayed, Python also displays a stack Traceback. This is a structured block of text that contains information about the sequence of function calls that have been made in the branch of execution of code in which the exception was raised. In Figure 1.6, the error has been encountered in the most recently called function that has been executed.\n1.5.2 The assert Statement\nAn assert statement in Python is used to test an expression in the program code. If the result after testing comes false, then the exception is raised. This statement is generally used in the beginning of the function or after a function call to check for valid input. The syntax for assert statement is:\nassert Expression[,arguments]\nOn encountering\nstatement, Python assertan\nevaluates\nthe\nimmediately after\nexpression\ngiven the assert keyword. If this expression is false, an AssertionError exception is raised which can be handled like any other exception.( Consider the code given in Program 1-1.\nprint(\"use of assert statement\") def negativecheck(number): assert(number>=0)\uff0c \"ooPS...\nNegative Number\nprint(number*number) print (negativecheck(loo)) print (negativecheck(-350))\nIn the code, the assert statement checks for the value of the variable number. In case the number gets a negative value, AssertionError will be thrown, and subsequent statements will not be executed. Hence, on passing a negative value (-35o) as an argument, it results in AssertionError and displays the message \"OOPS... Negative Number\". The output of the code is shown in Figure 1.7.",
+        "content_ltks": "rais except oop l an except ha occur traceback most recent call last file pyshel 0 line 1 in modul rais except oop an except ha occur except oop an except ha occur the error detect may be a built in except or may be a user defin one consid the exampl given in figur 16 that us the rais statement to rais a built in except call indexerror note in this case the user ha onli rais the except but ha not display ani error messag explicit in figur 16 sinc the valu of variabl length is greater than the length of the list number an indexerror except will be rais the statement follow the rais statement will not be execut so the messag no execut will not be display in this case a we can see in figur 16 in addit to the error messag display python also display a stack traceback this is a structur block of text that contain inform about the sequenc of function call that have been made in the branch of execut of code in which the except wa rais in figur 16 the error ha been encount in the most recent call function that ha been execut 15 2 the assert statement an assert statement in python is use to test an express in the program code if the result after test come fals then the except is rais this statement is general use in the begin of the function or after a function call to check for valid input the syntax for assert statement is assert express argument on encount statement python assertan evalu the immedi after express given the assert keyword if this express is fals an assertionerror except is rais which can be handl like ani other except consid the code given in program 11 print use of assert statement def negativecheck number assert number 0 oop negat number print number number print negativecheck loo print negativecheck 350 in the code the assert statement check for the valu of the variabl number in case the number get a negat valu assertionerror will be thrown and subsequ statement will not be execut henc on pass a negat valu 35o a an argument it result in assertionerror and display the messag oop negat number the output of the code is shown in figur 17",
+        "dataset_id": "1a0ce14c664811f1a49727756bfeeac2",
+        "doc_type_kwd": "",
+        "document_id": "bdf3bee2666711f1a49727756bfeeac2",
+        "document_keyword": "tmpg98lvkev.pdf",
+        "id": "dd1fbeae56e73d37",
+        "image_id": "1a0ce14c664811f1a49727756bfeeac2-dd1fbeae56e73d37",
+        "important_keywords": [],
+        "mom_id": "",
+        "positions": [
+          [
+            5,
+            66,
+            386,
+            400,
+            467
+          ],
+          [
+            5,
+            59,
+            385,
+            503,
+            560
+          ],
+          [
+            5,
+            59,
+            386,
+            566,
+            595
+          ],
+          [
+            5,
+            58,
+            386,
+            602,
+            686
+          ],
+          [
+            6,
+            208,
+            536,
+            52,
+            166
+          ],
+          [
+            6,
+            206,
+            386,
+            418,
+            435
+          ],
+          [
+            6,
+            204,
+            537,
+            440,
+            525
+          ],
+          [
+            6,
+            205,
+            536,
+            561,
+            632
+          ],
+          [
+            6,
+            81,
+            293,
+            660,
+            697
+          ],
+          [
+            7,
+            79,
+            261,
+            52,
+            91
+          ],
+          [
+            7,
+            58,
+            386,
+            353,
+            469
+          ]
+        ],
+        "row_id": null,
+        "similarity": 0.3213782122683251,
+        "tag_kwd": [],
+        "term_similarity": 0.16666666770833335,
+        "vector_similarity": 0.6823718162416392
+      },
+      {
+        "content": "\nthat would look up from nibbling the arid pastures and frown before bounding away into the void. Further on, where the plains became more stony than grassy, a great herd of wild ass came into view. Tsetan told us we were approaching them long before they appeared. \u201cKyang.,\" he said, pointing towards a far-off pall of dust. When we drew near, I could see the herd galloping en masse, wheeling and turning in tight formation as if they were practising manoeuvres on some predetermined course. Plumes of dust billowed into the crisp, clean air.\nAs hills started to push up once more from the rocky wilderness, we passed solitary drokbas tending their flocks.\nSometimes men, sometimes women, these well-wrapped figures would pause and stare at our car, occasionally waving as we passed. When the track took us close to their animals, the sheep would take evasive action, veering away from the speeding vehicle.\nWe passed nomads' dark tents pitched in splendid isolation, usually with a huge black dog, a Tibetan mastiff, standing guard.\nThese beasts would cock their great big heads when they became aware of our approach and fix us in their sights. As we continued to draw closer, they would explode into action, speeding directly towards us, like a bullet from a gun and nearly as fast.\nThese shaggy monsters, blacker than the darkest night, usually wore bright red collars and barked furiously with massive jaws. They were completely fearless of our vehicle, shooting straight into our path, causing Tsetan to brake and swerve. The\ndog would make chase for a hundred metres or so before easing off, having seen us off the property. It wasn't difficult to understand why ferocious Tibetan mastiffs became popular in China's imperial courts as hunting dogs, brought along the Silk Road in ancient times as tribute from Tibet.\nBy now we could see snow-capped mountains gathering on the horizon. We entered a valley where the river was wide and mostly clogged with ice, brilliant white and glinting in the sunshine. The trail hugged its bank, twisting with the meanders as we gradually gained height and the valley sides closed in.\nThe turns became sharper and the ride bumpier, Tsetan now in third gear as we continued to climb. The track moved away from the icy river, labouring through steeper slopes that sported big rocks daubed with patches of bright orange lichen Beneath the rocks, hunks of snow clung on in the near- permanent shade. I felt the pressure building up in my ears, held my nose, snorted and cleared them. We struggled round another tight bend and Tsetan stopped. He had opened his door and jumped out of his seat before I realised what was going on. \u201cSnow,\" said Daniel as he too exited the vehicle, letting in a breath of cold air as he did so.",
+        "content_ltks": "that would look up from nibbl the arid pastur and frown befor bound away into the void further on where the plain becam more stoni than grassi a great herd of wild as came into view tsetan told u we were approach them long befor they appear kyang he said point toward a far off pall of dust when we drew near i could see the herd gallop en mass wheel and turn in tight format a if they were practis manoeuvr on some predetermin cours plume of dust billow into the crisp clean air a hill start to push up onc more from the rocki wilder we pass solitari drokba tend their flock sometim men sometim woman these well wrap figur would paus and stare at our car occasion wave a we pass when the track took u close to their anim the sheep would take evas action veer away from the speed vehicl we pass nomad dark tent pitch in splendid isol usual with a huge black dog a tibetan mastiff stand guard these beast would cock their great big head when they becam awar of our approach and fix u in their sight a we continu to draw closer they would explod into action speed direct toward u like a bullet from a gun and near a fast these shaggi monster blacker than the darkest night usual wore bright red collar and bark furious with massiv jaw they were complet fearless of our vehicl shoot straight into our path caus tsetan to brake and swerv the dog would make chase for a hundr metr or so befor eas off have seen u off the properti it wasn t difficult to understand whi feroci tibetan mastiff becam popular in china s imperi court a hunt dog brought along the silk road in ancient time a tribut from tibet by now we could see snow cap mountain gather on the horizon we enter a valley where the river wa wide and most clog with ice brilliant white and glint in the sunshin the trail hug it bank twist with the meander a we gradual gain height and the valley side close in the turn becam sharper and the ride bumpier tsetan now in third gear a we continu to climb the track move away from the ici river labour through steeper slope that sport big rock daub with patch of bright orang lichen beneath the rock hunk of snow clung on in the near perman shade i felt the pressur build up in my ear held my nose snort and clear them we struggl round anoth tight bend and tsetan stop he had open his door and jump out of his seat befor i realis what wa go on snow said daniel a he too exit the vehicl let in a breath of cold air a he did so",
+        "dataset_id": "1a0ce14c664811f1a49727756bfeeac2",
+        "doc_type_kwd": "",
+        "document_id": "932cdf9e664a11f1a49727756bfeeac2",
+        "document_keyword": "tmpoyo4u9_q.pdf",
+        "id": "70bbed4eef355d9e",
+        "image_id": "1a0ce14c664811f1a49727756bfeeac2-70bbed4eef355d9e",
+        "important_keywords": [],
+        "mom_id": "",
+        "positions": [
+          [
+            85,
+            69,
+            397,
+            287,
+            399
+          ],
+          [
+            85,
+            70,
+            396,
+            400,
+            426
+          ],
+          [
+            85,
+            70,
+            397,
+            425,
+            475
+          ],
+          [
+            85,
+            70,
+            395,
+            476,
+            502
+          ],
+          [
+            85,
+            69,
+            397,
+            499,
+            550
+          ],
+          [
+            85,
+            69,
+            397,
+            551,
+            602
+          ],
+          [
+            86,
+            71,
+            397,
+            83,
+            145
+          ],
+          [
+            86,
+            69,
+            397,
+            145,
+            209
+          ],
+          [
+            86,
+            70,
+            397,
+            208,
+            346
+          ]
+        ],
+        "row_id": null,
+        "similarity": 0.32100133717489043,
+        "tag_kwd": [],
+        "term_similarity": 0.16666666770833335,
+        "vector_similarity": 0.6811155659301904
+      }
+    ],
+    "doc_aggs": [
+      {
+        "count": 3,
+        "doc_id": "bdf3bee2666711f1a49727756bfeeac2",
+        "doc_name": "tmpg98lvkev.pdf"
+      },
+      {
+        "count": 2,
+        "doc_id": "932cdf9e664a11f1a49727756bfeeac2",
+        "doc_name": "tmpoyo4u9_q.pdf"
+      }
+    ],
+    "total": 5
+  }
+}

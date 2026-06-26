@@ -82,19 +82,29 @@ async def test_orchestrator_routing():
                 )
             )
             
-            print(f"\n🎯 Selected Tool: {result.selected_tool}")
+            print(f"\n🎯 Selected Tool: {result.tool_used}")
             print(f"📊 Confidence: {result.confidence:.2f}")
-            print(f"💭 Reasoning: {result.tool_reasoning}")
+            print(f"💭 Reasoning: {result.reasoning}")
             
             # Check if routing was correct
-            if result.selected_tool == test['expected_tool']:
+            if result.tool_used == test['expected_tool']:
                 print(f"✅ CORRECT ROUTING")
             else:
                 print(f"⚠️ UNEXPECTED ROUTING (expected {test['expected_tool']})")
             
             # Show a snippet of the response
-            if result.response:
-                response_preview = result.response[:200] + "..." if len(result.response) > 200 else result.response
+            explanation = ""
+            if isinstance(result.result, dict):
+                explanation = result.result.get('explanation') or result.result.get('response') or ''
+            elif hasattr(result.result, 'explanation'):
+                explanation = result.result.explanation
+            elif hasattr(result.result, 'model_dump'):
+                explanation = str(result.result.model_dump())
+            else:
+                explanation = str(result.result)
+                
+            if explanation:
+                response_preview = explanation[:200] + "..." if len(explanation) > 200 else explanation
                 print(f"\n📝 Response Preview:")
                 print(f"{response_preview}")
             

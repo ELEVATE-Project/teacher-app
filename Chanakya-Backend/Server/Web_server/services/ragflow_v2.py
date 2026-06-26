@@ -168,7 +168,7 @@ class RAGFlowClientV2:
         question: str,
         dataset_ids: List[str],
         top_k: int = 6,
-        similarity_threshold: float = 0.2,
+        similarity_threshold: float = 0.4,
     ) -> List[Dict[str, Any]]:
         """Retrieve relevant chunks from datasets."""
         if not dataset_ids:
@@ -194,13 +194,31 @@ class RAGFlowClientV2:
             data = resp.json()
             
             # Extract chunks from response
+            chunks = []
             if data.get("data"):
-                chunks = data["data"]
-                if isinstance(chunks, dict):
-                    return chunks.get("chunks", [])
-                if isinstance(chunks, list):
-                    return chunks
-            return []
+                raw_chunks = data["data"]
+                if isinstance(raw_chunks, dict):
+                    chunks = raw_chunks.get("chunks", [])
+                elif isinstance(raw_chunks, list):
+                    chunks = raw_chunks
+            
+            # Nice print statement for developer logging/debugging
+            print(f"\n=========================================")
+            print(f"[RAGFLOW] RAGFLOW RETRIEVAL SUCCESSFUL")
+            print(f"[QUERY] Question : '{question}'")
+            print(f"[DATASETS] Datasets : {dataset_ids}")
+            print(f"[COUNT] Count    : {len(chunks)} chunk(s) retrieved")
+            print(f"=========================================")
+            for i, c in enumerate(chunks):
+                content = c.get("content") or c.get("text") or ""
+                doc_name = c.get("document_name") or c.get("source") or "Unknown Document"
+                score = c.get("similarity") or c.get("similarity_score") or c.get("score") or 0.0
+                print(f"  [{i+1}] Doc: '{doc_name}' | Score: {score}")
+                print(f"      Content: {content.strip()}")
+                print(f"  -----------------------------------------")
+            print(f"=========================================\n")
+
+            return chunks
         except Exception as e:
             logger.error(f"Failed to retrieve chunks: {e}")
             return []
@@ -235,13 +253,8 @@ class RAGFlowClientV2:
                 return [], {"error": "no_dataset_configured"}
 
             # Build question for retrieval
-            question_parts = [f"{class_name}", f"{subject}", f"{topic}"]
-            if language:
-                question_parts.append(f"in {language}")
-            if board:
-                question_parts.append(f"({board} board)")
-
-            question = " ".join(question_parts)
+            clean_class = class_name.replace("_", " ")
+            question = f"{clean_class} {subject} {topic}"
             logger.info(f"Retrieving RAGFlow content: {question}")
 
             # Retrieve chunks
@@ -249,7 +262,7 @@ class RAGFlowClientV2:
                 question=question,
                 dataset_ids=[dataset_id],
                 top_k=limit,
-                similarity_threshold=0.2,
+                similarity_threshold=0.4,
             )
 
             # Normalize to TextbookContent
@@ -258,27 +271,20 @@ class RAGFlowClientV2:
                 if isinstance(chunk, dict):
                     content = chunk.get("content") or chunk.get("text") or ""
                     source = chunk.get("document_name") or chunk.get("source") or f"RAGFlow_{idx}"
-                    score = chunk.get("similarity_score") or chunk.get("score")
+                    score = chunk.get("similarity") or chunk.get("similarity_score") or chunk.get("score")
                     
                     if content:
                         textbook_content.append(
                             TextbookContent(
                                 content=content,
-                                source=str(source),
+                                source=f"{class_name}|{subject}|{source}",
                                 similarity_score=score,
                             )
                         )
 
-            # Fallback to empty placeholder if no chunks retrieved
+            # Return empty list if no chunks retrieved to enforce RAGFlow focus
             if not textbook_content:
                 logger.warning(f"No chunks retrieved from RAGFlow for: {question}")
-                textbook_content.append(
-                    TextbookContent(
-                        content=f"Content for {class_name} {subject} {topic} from {board or 'default'} board.",
-                        source="RAGFlow_fallback",
-                        similarity_score=None,
-                    )
-                )
 
             metadata = {
                 "dataset_id": dataset_id,
@@ -451,7 +457,7 @@ class RAGFlowClientV2:
                     self._url(f"/api/v1/datasets/{dataset_id}/documents"),
                     headers=headers,
                     files={"file": (file_name, f, "application/pdf")},
-                    timeout=120,
+                    timeout=self.timeout_sec,
                 )
             resp.raise_for_status()
             return resp.json()
@@ -517,7 +523,7 @@ class RAGFlowClientV2:
                 self._url(f"/api/v1/openai/{cid}/chat/completions"),
                 headers=self._headers(),
                 json=payload,
-                timeout=120,
+                timeout=self.timeout_sec,
             )
             resp.raise_for_status()
             return resp.json()
@@ -556,7 +562,7 @@ class RAGFlowClientV2:
                 headers=self._headers(),
                 json=payload,
                 stream=True,
-                timeout=120,
+                timeout=self.timeout_sec,
             )
             resp.raise_for_status()
 
@@ -600,7 +606,7 @@ class RAGFlowClientV2:
                 headers=self._headers(),
                 json=payload,
                 stream=True,
-                timeout=120,
+                timeout=self.timeout_sec,
             )
             resp.raise_for_status()
             for line in resp.iter_lines():
@@ -626,7 +632,7 @@ class RAGFlowClientV2:
                 headers=self._headers(),
                 json=payload,
                 stream=True,
-                timeout=120,
+                timeout=self.timeout_sec,
             )
             resp.raise_for_status()
             for line in resp.iter_lines():
@@ -657,7 +663,7 @@ class RAGFlowClientV2:
             question=question,
             dataset_ids=[dataset_id],
             top_k=limit,
-            similarity_threshold=0.2,
+            similarity_threshold=0.4,
         )
 
         normalized = []
@@ -665,7 +671,7 @@ class RAGFlowClientV2:
             if isinstance(chunk, dict):
                 content = chunk.get("content") or chunk.get("text") or ""
                 source = chunk.get("document_name") or chunk.get("source") or f"RAGFlow_{idx}"
-                score = chunk.get("similarity_score") or chunk.get("score") or 0.0
+                score = chunk.get("similarity") or chunk.get("similarity_score") or chunk.get("score") or 0.0
                 if content:
                     normalized.append({
                         "content": content,
@@ -673,6 +679,52 @@ class RAGFlowClientV2:
                         "similarity": score,
                     })
         return normalized
+
+    def create_new_session(self, chat_id: str = "", name: str = "Default Session") -> Optional[str]:
+        """Create a new session under a specific chat assistant."""
+        try:
+            cid = self._resolve_chat_id(chat_id)
+            resp = self.session.post(
+                self._url(f"/api/v1/chats/{cid}/sessions"),
+                headers=self._headers(),
+                json={"name": name},
+                timeout=self.timeout_sec,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("data") and isinstance(data["data"], dict):
+                return data["data"].get("id")
+            return None
+        except Exception as e:
+            logger.error(f"Failed to create new session: {e}")
+            return None
+
+    def chat_completion_stateful(
+        self, question: str, chat_id: str = "", session_id: Optional[str] = None, filters: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Send a question to RAGFlow's stateful chat completions endpoint."""
+        try:
+            cid = self._resolve_chat_id(chat_id)
+            payload = {
+                "question": question,
+                "stream": False
+            }
+            if session_id:
+                payload["session_id"] = session_id
+            if filters:
+                payload["filters"] = filters
+                
+            resp = self.session.post(
+                self._url(f"/api/v1/chats/{cid}/completions"),
+                headers=self._headers(),
+                json=payload,
+                timeout=self.timeout_sec,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Stateful chat completion error: {e}")
+            return {"code": -1, "message": str(e), "success": False, "error": str(e)}
 
     async def retrieve_raw_chunks_async(
         self,

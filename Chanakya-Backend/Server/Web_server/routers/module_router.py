@@ -7,6 +7,7 @@ Provides endpoints for topic selection, lesson generation, storage, and export.
 """
 
 import time
+import asyncio
 import logging
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, status, Query
@@ -307,6 +308,24 @@ async def generate_lesson(request: LessonGenerationRequest):
             textbook_content=textbook_content
         )
         
+        # Create a new RAGFlow chat session for this lesson
+        ragflow_session_id = None
+        try:
+            session_name = f"Lesson: {request.class_name} - {request.subject} - {request.topic}"
+            logger.info(f"Creating new RAGFlow chat session for lesson: '{session_name}'")
+            module_chat_id = getattr(settings, "RAGFLOW_MODULE_CHAT_ID", None) or settings.RAGFLOW_CHAT_ID
+            ragflow_session_id = await asyncio.to_thread(
+                ragflow_service.create_new_session,
+                chat_id=module_chat_id,
+                name=session_name
+            )
+            logger.info(f"Successfully created RAGFlow chat session with ID: {ragflow_session_id}")
+        except Exception as e:
+            logger.error(f"Failed to create RAGFlow chat session for lesson: {e}")
+            
+        # Store in lesson
+        lesson.ragflow_session_id = ragflow_session_id
+
         saved_id = None
         if request.save:
             # Step 4: Save lesson and assignment
@@ -330,6 +349,7 @@ async def generate_lesson(request: LessonGenerationRequest):
             dataset_name=retrieval_meta.get("dataset_name"),
             rag_chunks_used=retrieval_meta.get("rag_chunks_used"),
             saved_id=saved_id,
+            ragflow_session_id=ragflow_session_id,
         )
         
     except HTTPException:

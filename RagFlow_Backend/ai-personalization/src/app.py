@@ -11,13 +11,19 @@ This service acts as a thin wrapper around RAGFlow, providing:
 """
 
 import os
-import traceback
+import sys
+
+# Load environment variables from root first
 from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
+
+# Apply OpenRouter patch for legacy google.generativeai
+import openrouter_generativeai_patch
+
+import traceback
 from routes.public_auth_routes import public_auth_bp
 from routes.public_chat_routes import public_chat_bp
 from lesson_planner_routes import lesson_bp
-# Load environment variables from root
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 
 from flask import Flask, jsonify
 from flask_cors import CORS

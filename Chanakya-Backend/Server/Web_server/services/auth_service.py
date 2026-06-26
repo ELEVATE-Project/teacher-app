@@ -59,7 +59,7 @@ class AuthService:
         try:
             await new_user.insert()
             # Log successful signup
-            print(f"\n✅ USER SIGNUP SUCCESSFUL")
+            print(f"\n[AUTH] USER SIGNUP SUCCESSFUL")
             print(f"   Name: {new_user.name}")
             print(f"   Email: {new_user.email}")
             print(f"   ID: {new_user.id}")
@@ -74,7 +74,7 @@ class AuthService:
             )
         
         # Generate token
-        token = create_access_token(str(new_user.id))
+        token = create_access_token(str(new_user.id), role=new_user.role)
         
         # Return user response
         user_response = UserResponse(
@@ -120,10 +120,10 @@ class AuthService:
             )
         
         # Generate token
-        token = create_access_token(str(user.id))
+        token = create_access_token(str(user.id), role=user.role)
         
         # Log successful login
-        print(f"\n✅ USER LOGIN SUCCESSFUL")
+        print(f"\n[AUTH] USER LOGIN SUCCESSFUL")
         print(f"   Email: {user.email}")
         print(f"   Name: {user.name}")
         print(f"   ID: {user.id}")

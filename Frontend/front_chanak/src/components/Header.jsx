@@ -37,7 +37,7 @@ function Header() {
             Home
           </NavLink>
           <NavLink
-            to="/chat"
+            to="/chat/qna"
             onClick={handleChatClick}
             className="text-sm md:text-lg text-[#000000] no-underline hover:text-[#000000] relative transition-colors hover:after:absolute hover:after:bottom-[-4px] hover:after:left-0 hover:after:w-full hover:after:h-[2px] hover:after:bg-[#D1D5DB] hover:after:transition-all hover:after:duration-300"
           >
@@ -114,7 +114,7 @@ function Header() {
                 Home
               </NavLink>
               <NavLink
-                to="/chat"
+                to="/chat/qna"
                 onClick={(e) => {
                   setIsMenuOpen(false);
                   handleChatClick(e);

@@ -21,7 +21,7 @@ class DatabaseConfig:
     @property
     def use_sqlite(self) -> bool:
         """Check if SQLite should be used for checkpointing (default)."""
-        return os.getenv("USE_SQLITE", "true").lower() == "true"
+        return False
     
     @property
     def sqlite_path(self) -> str:

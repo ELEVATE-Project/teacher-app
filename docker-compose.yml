@@ -20,7 +20,7 @@ services:
 
   ai-personalization:
     build:
-      context: ./Backend/ai-personalization
+      context: ./RagFlow_Backend/ai-personalization
       dockerfile: Dockerfile
     container_name: guru-ai-service
     ports:
@@ -32,8 +32,8 @@ services:
       - FLASK_PORT=5001
       - RAGFLOW_BASE_URL=${RAGFLOW_BASE_URL}
     volumes:
-      - ./Backend/ai-personalization/chroma_db:/app/src/chroma_db
-      - ./Backend/ai-personalization/src/uploads:/app/src/uploads
+      - ./RagFlow_Backend/ai-personalization/chroma_db:/app/src/chroma_db
+      - ./RagFlow_Backend/ai-personalization/src/uploads:/app/src/uploads
     networks:
       - ragflow
     restart: unless-stopped

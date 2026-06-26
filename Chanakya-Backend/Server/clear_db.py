@@ -1,27 +1,33 @@
-import sqlite3
 import os
+import psycopg2
 
-db_path = 'data/conversations.db'
+dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
 
-if os.path.exists(db_path):
-    conn = sqlite3.connect(db_path)
+print("="*60)
+print("🧹 Clearing PostgreSQL Tables")
+print("="*60)
+
+try:
+    conn = psycopg2.connect(dsn)
     cursor = conn.cursor()
     
-    # Delete all messages
-    cursor.execute('DELETE FROM messages')
-    print(f"Deleted {cursor.rowcount} messages")
+    # Delete all feedback
+    cursor.execute('DELETE FROM teaching_feedback')
+    print(f"✓ Deleted {cursor.rowcount} feedback records from teaching_feedback")
+
+    # Truncate messages and feedback context
+    cursor.execute('TRUNCATE TABLE messages CASCADE')
+    print("✓ Truncated messages table")
+
+    cursor.execute('TRUNCATE TABLE conversations CASCADE')
+    print("✓ Truncated conversations table")
     
-    # Delete all conversations
-    cursor.execute('DELETE FROM conversations')
-    print(f"Deleted {cursor.rowcount} conversations")
-    
-    # Reset auto-increment counters
-    cursor.execute('DELETE FROM sqlite_sequence WHERE name="messages"')
-    cursor.execute('DELETE FROM sqlite_sequence WHERE name="conversations"')
+    cursor.execute('TRUNCATE TABLE feedback_context CASCADE')
+    print("✓ Truncated feedback_context table")
     
     conn.commit()
     conn.close()
     
-    print("Database cleared successfully!")
-else:
-    print(f"Database not found at {db_path}")
+    print("\n✅ PostgreSQL Database cleared successfully!")
+except Exception as e:
+    print(f"❌ Error clearing PostgreSQL database: {e}")

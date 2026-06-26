@@ -1,7 +1,9 @@
 """
 MongoDB database connection and initialization.
 """
+# pyrefly: ignore [missing-import]
 from motor.motor_asyncio import AsyncIOMotorClient
+# pyrefly: ignore [missing-import]
 from beanie import init_beanie
 from config import settings
 from models.user import User
@@ -36,14 +38,22 @@ async def connect_to_mongo():
             DiscussPost, DiscussReply,
         ]
     )
-    print(f"✅ Connected to MongoDB: {settings.DATABASE_NAME}")
+    print(f"[DB] Connected to MongoDB: {settings.DATABASE_NAME}")
+    
+    # Backfill existing chat sessions in the background on startup
+    try:
+        from services.chat_service import ChatService
+        import asyncio
+        asyncio.create_task(ChatService.backfill_session_tools())
+    except Exception as e:
+        print(f"[DB] Failed to start chat session tool backfill: {e}")
 
 
 async def close_mongo_connection():
     """Close database connection."""
     if db.client:
         db.client.close()
-        print("✅ MongoDB connection closed")
+        print("[DB] MongoDB connection closed")
 
 
 async def get_database():

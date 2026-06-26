@@ -12,6 +12,7 @@ class QueryRequest(BaseModel):
     context: Optional[Dict[str, Any]] = Field(None, description="Additional context for the query")
     session_id: Optional[str] = Field(None, description="Session ID for tracking conversation history")
     document_id: Optional[str] = Field(None, description="When set, answer using only this uploaded PDF document (chat document Q&A)")
+    selected_tool: Optional[str] = Field(None, description="Manually override routing to run a specific tool directly")
 
     class Config:
         json_schema_extra = {

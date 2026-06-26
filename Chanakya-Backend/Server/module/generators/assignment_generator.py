@@ -219,12 +219,12 @@ class AssignmentGenerator:
             api_key: Google AI API key. If None, reads from GEMINI_API_KEYenv var.
             enable_validation: Whether to enable question answerability validation.
         """
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY")
         if not self.api_key:
             # Debug: Check if env var exists
             all_env_keys = [k for k in os.environ.keys() if 'GEMINI' in k or 'API' in k]
             raise ValueError(
-                f"Google API key is required. Set GEMINI_API_KEY environment variable. "
+                f"Google/OpenRouter API key is required. Set GEMINI_API_KEY or OPENROUTER_API_KEY environment variable. "
                 f"Found environment keys with 'GEMINI' or 'API': {all_env_keys}"
             )
         

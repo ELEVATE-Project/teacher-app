@@ -2,13 +2,13 @@
 Teaching Feedback Storage
 ==========================
 
-Handles database storage of teaching feedback (without storing transcripts).
+Handles database storage of teaching feedback (without storing transcripts) in PostgreSQL.
 """
 
 import json
-import sqlite3
+import os
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from .schemas import TeachingFeedback, FeedbackHistory
@@ -16,53 +16,58 @@ from .schemas import TeachingFeedback, FeedbackHistory
 
 class FeedbackStorage:
     """
-    Stores teaching feedback in SQLite database.
+    Stores teaching feedback in PostgreSQL database.
     Does NOT store transcripts - only feedback and metadata.
     """
     
-    def __init__(self, db_path: str = "data/teaching_feedback.db"):
-        """Initialize storage with database path."""
-        self.db_path = Path(db_path)
-        # Ensure data directory exists
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, db_path: Optional[str] = None):
+        """Initialize storage with DSN."""
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
         self._initialize_db()
     
+    def _get_connection(self):
+        """Establish connection to PostgreSQL."""
+        import psycopg2
+        return psycopg2.connect(self.dsn)
+        
     def _initialize_db(self):
         """Create database tables if they don't exist."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Feedback table - stores only feedback, NOT transcripts
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS teaching_feedback (
-                session_id TEXT PRIMARY KEY,
-                teacher_id TEXT,
-                topic TEXT NOT NULL,
-                grade_level TEXT NOT NULL,
-                duration_minutes INTEGER,
-                language TEXT,
-                timestamp TEXT NOT NULL,
-                overall_score REAL NOT NULL,
-                concept_coverage TEXT NOT NULL,
-                clarity TEXT NOT NULL,
-                engagement TEXT NOT NULL,
-                rural_context TEXT NOT NULL,
-                key_strengths TEXT NOT NULL,
-                improvement_areas TEXT NOT NULL,
-                actionable_tips TEXT NOT NULL,
-                misconceptions_addressed TEXT NOT NULL,
-                misconceptions_missed TEXT NOT NULL
-            )
-        """)
-        
-        # Index for teacher queries
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_teacher_timestamp 
-            ON teaching_feedback(teacher_id, timestamp DESC)
-        """)
-        
-        conn.commit()
-        conn.close()
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Feedback table - stores only feedback, NOT transcripts
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS teaching_feedback (
+                    session_id TEXT PRIMARY KEY,
+                    teacher_id TEXT,
+                    topic TEXT NOT NULL,
+                    grade_level TEXT NOT NULL,
+                    duration_minutes INTEGER,
+                    language TEXT,
+                    timestamp TEXT NOT NULL,
+                    overall_score REAL NOT NULL,
+                    concept_coverage TEXT NOT NULL,
+                    clarity TEXT NOT NULL,
+                    engagement TEXT NOT NULL,
+                    rural_context TEXT NOT NULL,
+                    key_strengths TEXT NOT NULL,
+                    improvement_areas TEXT NOT NULL,
+                    actionable_tips TEXT NOT NULL,
+                    misconceptions_addressed TEXT NOT NULL,
+                    misconceptions_missed TEXT NOT NULL
+                )
+            """)
+            
+            # Index for teacher queries
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_teacher_timestamp 
+                ON teaching_feedback(teacher_id, timestamp DESC)
+            """)
+            
+            conn.commit()
+        finally:
+            conn.close()
     
     def save_feedback(self, feedback: TeachingFeedback, teacher_id: Optional[str] = None) -> bool:
         """
@@ -75,17 +80,35 @@ class FeedbackStorage:
         Returns:
             True if saved successfully
         """
+        conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT OR REPLACE INTO teaching_feedback (
+                INSERT INTO teaching_feedback (
                     session_id, teacher_id, topic, grade_level, duration_minutes, 
                     language, timestamp, overall_score, concept_coverage, clarity,
                     engagement, rural_context, key_strengths, improvement_areas,
                     actionable_tips, misconceptions_addressed, misconceptions_missed
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (session_id) DO UPDATE SET
+                    teacher_id = EXCLUDED.teacher_id,
+                    topic = EXCLUDED.topic,
+                    grade_level = EXCLUDED.grade_level,
+                    duration_minutes = EXCLUDED.duration_minutes,
+                    language = EXCLUDED.language,
+                    timestamp = EXCLUDED.timestamp,
+                    overall_score = EXCLUDED.overall_score,
+                    concept_coverage = EXCLUDED.concept_coverage,
+                    clarity = EXCLUDED.clarity,
+                    engagement = EXCLUDED.engagement,
+                    rural_context = EXCLUDED.rural_context,
+                    key_strengths = EXCLUDED.key_strengths,
+                    improvement_areas = EXCLUDED.improvement_areas,
+                    actionable_tips = EXCLUDED.actionable_tips,
+                    misconceptions_addressed = EXCLUDED.misconceptions_addressed,
+                    misconceptions_missed = EXCLUDED.misconceptions_missed
             """, (
                 feedback.session_id,
                 teacher_id,
@@ -107,12 +130,14 @@ class FeedbackStorage:
             ))
             
             conn.commit()
-            conn.close()
             return True
             
         except Exception as e:
             print(f"Error saving feedback: {e}")
             return False
+        finally:
+            if conn:
+                conn.close()
     
     def get_feedback(self, session_id: str) -> Optional[TeachingFeedback]:
         """
@@ -124,17 +149,16 @@ class FeedbackStorage:
         Returns:
             TeachingFeedback object or None
         """
+        conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT * FROM teaching_feedback WHERE session_id = ?
+                SELECT * FROM teaching_feedback WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
-            conn.close()
-            
             if not row:
                 return None
             
@@ -143,6 +167,9 @@ class FeedbackStorage:
         except Exception as e:
             print(f"Error retrieving feedback: {e}")
             return None
+        finally:
+            if conn:
+                conn.close()
     
     def get_teacher_history(self, teacher_id: str, limit: int = 5) -> FeedbackHistory:
         """
@@ -155,19 +182,19 @@ class FeedbackStorage:
         Returns:
             FeedbackHistory with statistics and recent sessions
         """
+        conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             # Get all feedbacks for teacher
             cursor.execute("""
                 SELECT * FROM teaching_feedback 
-                WHERE teacher_id = ? 
+                WHERE teacher_id = %s 
                 ORDER BY timestamp DESC
             """, (teacher_id,))
             
             rows = cursor.fetchall()
-            conn.close()
             
             if not rows:
                 return FeedbackHistory(
@@ -236,6 +263,9 @@ class FeedbackStorage:
                 common_strengths=[],
                 recurring_gaps=[]
             )
+        finally:
+            if conn:
+                conn.close()
     
     def _row_to_feedback(self, row) -> TeachingFeedback:
         """Convert database row to TeachingFeedback object."""

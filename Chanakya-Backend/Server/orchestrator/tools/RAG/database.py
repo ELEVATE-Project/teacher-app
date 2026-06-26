@@ -1,10 +1,12 @@
 """
-SQLite database operations for storing documents and embeddings
+PostgreSQL database operations for storing documents and embeddings.
 """
 
-import sqlite3
+import json
+import psycopg2
+from psycopg2.extras import RealDictCursor, execute_values
 import numpy as np
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Any
 import logging
 import os
 
@@ -12,25 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 class Database:
-    """Handle SQLite database operations for document storage and retrieval"""
+    """Handle PostgreSQL database operations for document storage and retrieval"""
     
     def __init__(self, db_path: str = "orchestrator/tools/RAG/ncert_books.db"):
         """
         Initialize database connection
         
         Args:
-            db_path: Path to SQLite database file (relative to Server folder or absolute)
+            db_path: Path parameter (ignored, database URL used instead)
         """
-        # If path is relative, make it absolute based on this file's location
-        if not os.path.isabs(db_path):
-            # Get the directory where THIS file (database.py) is located
-            this_file_dir = os.path.dirname(os.path.abspath(__file__))
-            # The database should be in the same directory as this file
-            db_path = os.path.join(this_file_dir, "ncert_books.db")
-        
-        logger.info(f"Attempting to connect to database at: {db_path}")
-        logger.info(f"Database file exists: {os.path.exists(db_path)}")
-        
         self.db_path = db_path
         self.conn = None
         self._connect()
@@ -38,11 +30,11 @@ class Database:
     
     def _connect(self):
         """Establish database connection"""
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
         try:
-            self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
-            self.conn.row_factory = sqlite3.Row
-            logger.info(f"Connected to database: {self.db_path}")
-        except sqlite3.Error as e:
+            self.conn = psycopg2.connect(self.dsn)
+            logger.info("Connected to PostgreSQL database")
+        except Exception as e:
             logger.error(f"Error connecting to database: {e}")
             raise
     
@@ -51,9 +43,9 @@ class Database:
         cursor = self.conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS documents (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 content TEXT NOT NULL,
-                embedding BLOB NOT NULL,
+                embedding BYTEA NOT NULL,
                 source TEXT NOT NULL
             )
         """)
@@ -64,6 +56,7 @@ class Database:
         """)
         
         self.conn.commit()
+        cursor.close()
         logger.info("Database schema created/verified")
     
     def insert_document(self, content: str, embedding: np.ndarray, source: str) -> int:
@@ -85,14 +78,17 @@ class Database:
             cursor = self.conn.cursor()
             cursor.execute("""
                 INSERT INTO documents (content, embedding, source)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
+                RETURNING id
             """, (content, embedding_bytes, source))
             
+            row = cursor.fetchone()
             self.conn.commit()
-            doc_id = cursor.lastrowid
+            doc_id = row[0] if row else None
+            cursor.close()
             logger.debug(f"Inserted document with ID {doc_id}, source: {source}")
             return doc_id
-        except sqlite3.Error as e:
+        except Exception as e:
             logger.error(f"Error inserting document: {e}")
             self.conn.rollback()
             raise
@@ -111,14 +107,15 @@ class Database:
                 for content, embedding, source in documents
             ]
             
-            cursor.executemany("""
+            execute_values(cursor, """
                 INSERT INTO documents (content, embedding, source)
-                VALUES (?, ?, ?)
+                VALUES %s
             """, data)
             
             self.conn.commit()
+            cursor.close()
             logger.info(f"Inserted {len(documents)} documents in batch")
-        except sqlite3.Error as e:
+        except Exception as e:
             logger.error(f"Error inserting documents batch: {e}")
             self.conn.rollback()
             raise
@@ -130,7 +127,7 @@ class Database:
         Returns:
             List of dictionaries with document data
         """
-        cursor = self.conn.cursor()
+        cursor = self.conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("SELECT id, content, embedding, source FROM documents")
         
         results = []
@@ -142,7 +139,7 @@ class Database:
                 'embedding': embedding,
                 'source': row['source']
             })
-        
+        cursor.close()
         return results
     
     def search_similar(self, query_embedding: np.ndarray, top_k: int = 5, 
@@ -217,7 +214,8 @@ class Database:
         cursor = self.conn.cursor()
         cursor.execute("SELECT COUNT(*) as count FROM documents")
         result = cursor.fetchone()
-        return result['count'] if result else 0
+        cursor.close()
+        return result[0] if result else 0
     
     def get_documents_by_source(self, source_pattern: str) -> List[Dict]:
         """
@@ -229,11 +227,11 @@ class Database:
         Returns:
             List of matching documents
         """
-        cursor = self.conn.cursor()
+        cursor = self.conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
             SELECT id, content, embedding, source 
             FROM documents 
-            WHERE source LIKE ?
+            WHERE source LIKE %s
         """, (source_pattern,))
         
         results = []
@@ -245,7 +243,7 @@ class Database:
                 'embedding': embedding,
                 'source': row['source']
             })
-        
+        cursor.close()
         return results
     
     def close(self):

@@ -41,10 +41,12 @@ class ChatSession(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     is_archived: bool = Field(default=False, description="Whether session is archived")
+    tool: Optional[str] = Field(None, description="The tool/mode scope of the chat session")
     
     class Settings:
         name = "chat_sessions"
         indexes = [
+            [("user_id", 1), ("tool", 1), ("updated_at", -1)],  # For fetching user's sessions by tool
             [("user_id", 1), ("updated_at", -1)],  # For fetching user's sessions
             [("session_id", 1)],
         ]

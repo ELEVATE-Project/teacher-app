@@ -281,7 +281,7 @@ function Landing() {
                 Create Modules
               </button>
               <button
-                onClick={() => navigate("/chat")}
+                onClick={() => navigate("/chat/qna")}
                 className="bg-white border-2 border-[#000000] px-4 md:px-6 py-3 md:py-4 text-black font-bold text-sm md:text-base shadow-[4px_4px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all"
               >
                 Chat With Chanakya

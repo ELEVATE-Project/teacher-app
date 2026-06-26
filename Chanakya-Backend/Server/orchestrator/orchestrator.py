@@ -15,6 +15,7 @@ from typing import Optional, Dict, Any, TypedDict, List, AsyncIterator
 from google import genai
 from google.genai import types
 from cachetools import LRUCache
+# pyrefly: ignore [missing-import]
 import structlog
 
 from .schemas import (
@@ -24,11 +25,13 @@ from .schemas import (
     ConversationContext,
     ConversationMessage,
 )
-from .tools import ActivityGeneratorTool, CrisisHandlerTool, TeacherMotivationTool, ContentExplainerTool, ClassroomGuidanceTool, ExpertTeacherTool, GeneralConversationTool, QuickAnswerTool, ResourceFinderTool, FeedbackResponseTool
+from .tools import ActivityGeneratorTool, CrisisHandlerTool, TeacherMotivationTool, ContentExplainerTool, ClassroomGuidanceTool, ExpertTeacherTool, GeneralConversationTool, QuickAnswerTool, ResourceFinderTool, FeedbackResponseTool, ModuleBuilderTool
 
 
 # LangGraph imports
+# pyrefly: ignore [missing-import]
 from langgraph.graph import StateGraph, END
+# pyrefly: ignore [missing-import]
 from langgraph.checkpoint.memory import MemorySaver
 
 # SQLite storage for conversations
@@ -352,27 +355,42 @@ class ChanakyaOrchestrator:
         self.logger = structlog.get_logger("chanakya.orchestrator")
         
         # Initialize tools
-        self.tools = {
-            "activity_generator": ActivityGeneratorTool(api_key=api_key),
-            "crisis_handler": CrisisHandlerTool(api_key=api_key),
-            "teacher_motivation": TeacherMotivationTool(api_key=api_key),
-            "content_explainer": ContentExplainerTool(),
-            "classroom_guidance": ClassroomGuidanceTool(api_key=api_key),
-            "expert_teacher": ExpertTeacherTool(api_key=api_key),
-            "general_conversation": GeneralConversationTool(api_key=api_key),
-            "quick_answer": QuickAnswerTool(api_key=api_key),
-            "resource_finder": ResourceFinderTool(),
-            "feedback_response": FeedbackResponseTool(api_key=api_key)
+        self.tools = {}
+        tool_classes = {
+            "activity_generator": ActivityGeneratorTool,
+            "crisis_handler": CrisisHandlerTool,
+            "teacher_motivation": TeacherMotivationTool,
+            "content_explainer": ContentExplainerTool,
+            "classroom_guidance": ClassroomGuidanceTool,
+            "expert_teacher": ExpertTeacherTool,
+            "general_conversation": GeneralConversationTool,
+            "quick_answer": QuickAnswerTool,
+            "resource_finder": ResourceFinderTool,
+            "feedback_response": FeedbackResponseTool,
+            "module_builder": ModuleBuilderTool
         }
+        
+        for tool_name, tool_class in tool_classes.items():
+            try:
+                if tool_name == "content_explainer":
+                    self.tools[tool_name] = tool_class(api_key=api_key)
+                elif tool_name == "resource_finder":
+                    self.tools[tool_name] = tool_class()
+                else:
+                    self.tools[tool_name] = tool_class(api_key=api_key)
+            except Exception as e:
+                import traceback
+                print("="*80)
+                print(f"❌ Failed to initialize tool: {tool_name}")
+                traceback.print_exc()
+                print("="*80)
+                raise e
         
         # Conversation contexts (LRU cache to prevent memory leaks)
         self.contexts: LRUCache = LRUCache(maxsize=1000)
         
-        # SQLite storage for persistent conversation history
-        if Config.db.use_sqlite:
-            self.storage = ConversationStorage()
-        else:
-            self.storage = None
+        # Persistent PostgreSQL storage for conversation history
+        self.storage = ConversationStorage()
         
         # Build the LangGraph
         self.graph = self._build_graph()
@@ -785,6 +803,40 @@ Language:""")]
         query = state["query"]
         messages = state.get("messages", [])
         context = state.get("context", {})
+        
+        # Check for manual selected_tool override
+        manual_tool = state.get("selected_tool") or context.get("selected_tool")
+        if manual_tool:
+            self.logger.info("manual_routing_override", tool=manual_tool, query=query)
+            return {
+                "selected_tool": manual_tool,
+                "tool_reasoning": f"Manual tool selection override: {manual_tool}",
+                "intent": query,
+                "confidence": 1.0,
+            }
+            
+        # Check if the query is a module/lesson plan request
+        query_lower = query.lower()
+        is_module_request = (
+            "generate module" in query_lower or
+            "create module" in query_lower or
+            "build module" in query_lower or
+            "module for chapter" in query_lower or
+            "lesson plan" in query_lower or
+            "slide plan" in query_lower or
+            "2 slide" in query_lower or
+            "create a module" in query_lower or
+            ("module" in query_lower and "chapter" in query_lower) or
+            ("lesson" in query_lower and "plan" in query_lower)
+        )
+        if is_module_request:
+            self.logger.info("module_request_detected", query=query)
+            return {
+                "selected_tool": "module_builder",
+                "tool_reasoning": "Detected module or lesson plan request, routing to module_builder tool",
+                "intent": query,
+                "confidence": 1.0,
+            }
         
         # Check if quick_answer_mode is enabled
         quick_answer_mode = context.get("quick_answer_mode", False)
@@ -1483,10 +1535,11 @@ TIPS: {', '.join(activity_output.get('tips', [])) if activity_output.get('tips')
             language=detected_lang
         )
         
-        # Store detected language in context for tools to use
+        # Store detected language and session_id in context for tools to use
         if input_data.context is None:
             input_data.context = {}
         input_data.context['detected_language'] = detected_lang
+        input_data.context['session_id'] = session_id
         
         # Store quick_answer_mode flag in context
         if input_data.quick_answer_mode:
@@ -1499,7 +1552,7 @@ TIPS: {', '.join(activity_output.get('tips', [])) if activity_output.get('tips')
             "session_id": session_id,
             "messages": [],
             "intent": None,
-            "selected_tool": None,
+            "selected_tool": getattr(input_data, "selected_tool", None),
             "tool_reasoning": None,
             "tool_result": None,
             "error": None,
@@ -1707,10 +1760,11 @@ TIPS: {', '.join(activity_output.get('tips', [])) if activity_output.get('tips')
             language=detected_lang
         )
         
-        # Store detected language in context for tools to use
+        # Store detected language and session_id in context for tools to use
         if input_data.context is None:
             input_data.context = {}
         input_data.context['detected_language'] = detected_lang
+        input_data.context['session_id'] = session_id
         
         # Store quick_answer_mode flag in context
         if input_data.quick_answer_mode:
@@ -1723,7 +1777,7 @@ TIPS: {', '.join(activity_output.get('tips', [])) if activity_output.get('tips')
             "session_id": session_id,
             "messages": [],
             "intent": None,
-            "selected_tool": None,
+            "selected_tool": getattr(input_data, "selected_tool", None),
             "tool_reasoning": None,
             "tool_result": None,
             "error": None,

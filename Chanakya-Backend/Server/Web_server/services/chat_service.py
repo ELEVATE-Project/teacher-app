@@ -20,6 +20,7 @@ class ChatService:
         user_id: str,
         ragflow_session_id: Optional[str] = None,
         ragflow_context: Optional[dict] = None,
+        tool: Optional[str] = None
     ) -> ChatSession:
         """
         Get existing session or create new one.
@@ -27,6 +28,7 @@ class ChatService:
         Args:
             session_id: Session identifier
             user_id: User ID
+            tool: Optional tool scope
             
         Returns:
             ChatSession object
@@ -45,18 +47,30 @@ class ChatService:
                 ragflow_session_id=ragflow_session_id,
                 ragflow_context=ragflow_context,
                 title="New Chat",
-                message_count=0
+                message_count=0,
+                tool=tool
             )
             await session.insert()
-            logger.info(f"Created new chat session: {session_id} for user: {user_id}")
+            logger.info(f"Created new chat session: {session_id} for user: {user_id} with tool: {tool}")
         else:
             updated = False
+            if tool and getattr(session, 'tool', None) != tool:
+                session.tool = tool
+                updated = True
             if ragflow_session_id and session.ragflow_session_id != ragflow_session_id:
                 session.ragflow_session_id = ragflow_session_id
                 updated = True
-            if ragflow_context is not None and session.ragflow_context != ragflow_context:
-                session.ragflow_context = ragflow_context
-                updated = True
+            if ragflow_context:
+                if not session.ragflow_context:
+                    session.ragflow_context = {}
+                # Merge incoming non-None/non-empty values to prevent losing class/subject selections
+                merged = {**session.ragflow_context}
+                for k, v in ragflow_context.items():
+                    if v is not None and v != "":
+                        merged[k] = v
+                if session.ragflow_context != merged:
+                    session.ragflow_context = merged
+                    updated = True
             if updated:
                 await session.save()
         
@@ -89,8 +103,11 @@ class ChatService:
         """
         logger.info(f"Saving message - session_id: {session_id}, user_id: {user_id}, role: {role}")
         
+        # Determine the tool scope from tool_used / metadata
+        tool = tool_used or (metadata.get("tool_used") if metadata else None)
+        
         # Get or create session
-        session = await ChatService.get_or_create_session(session_id, user_id)
+        session = await ChatService.get_or_create_session(session_id, user_id, tool=tool)
         
         # Create message
         message = ChatMessage(
@@ -125,7 +142,8 @@ class ChatService:
     async def get_user_sessions(
         user_id: str,
         limit: int = 20,
-        skip: int = 0
+        skip: int = 0,
+        tool: Optional[str] = None
     ) -> tuple[List[ChatSessionSchema], int]:
         """
         Get user's chat sessions.
@@ -134,21 +152,24 @@ class ChatService:
             user_id: User ID
             limit: Maximum number of sessions to return
             skip: Number of sessions to skip
+            tool: Optional tool scope to filter by
             
         Returns:
             Tuple of (list of sessions, total count)
         """
-        # Get total count
-        total = await ChatSession.find(
+        # Build query criteria
+        criteria = [
             ChatSession.user_id == user_id,
             ChatSession.is_archived == False
-        ).count()
+        ]
+        if tool:
+            criteria.append(ChatSession.tool == tool)
+
+        # Get total count
+        total = await ChatSession.find(*criteria).count()
         
         # Get sessions sorted by updated_at (most recent first)
-        sessions = await ChatSession.find(
-            ChatSession.user_id == user_id,
-            ChatSession.is_archived == False
-        ).sort(-ChatSession.updated_at).skip(skip).limit(limit).to_list()
+        sessions = await ChatSession.find(*criteria).sort(-ChatSession.updated_at).skip(skip).limit(limit).to_list()
         
         # Convert to schema
         session_schemas = [
@@ -249,3 +270,52 @@ class ChatService:
         
         logger.info(f"Archived session: {session_id} for user: {user_id}")
         return True
+
+    @staticmethod
+    async def backfill_session_tools():
+        """Backfill the 'tool' field for existing chat sessions based on their messages."""
+        logger.info("Starting backfill of chat session tools...")
+        try:
+            sessions = await ChatSession.find(ChatSession.tool == None).to_list()
+            logger.info(f"Found {len(sessions)} sessions without a tool field")
+            
+            for session in sessions:
+                # Find assistant messages with a tool_used
+                messages = await ChatMessage.find(
+                    ChatMessage.session_id == session.session_id,
+                    ChatMessage.role == "assistant",
+                    ChatMessage.tool_used != None
+                ).sort(-ChatMessage.created_at).to_list()
+                
+                tool = None
+                if messages:
+                    # Map tool_used to one of the three modes
+                    for msg in messages:
+                        if msg.tool_used in ("module_builder", "expert_teacher", "activity_generator"):
+                            tool = msg.tool_used
+                            break
+                
+                # Fallback 1: check user's first query content/context
+                if not tool:
+                    first_user_msg = await ChatMessage.find_one(
+                        ChatMessage.session_id == session.session_id,
+                        ChatMessage.role == "user"
+                    )
+                    if first_user_msg:
+                        content = first_user_msg.content.lower()
+                        if any(x in content for x in ("module", "lesson plan", "syllabus", "slide")):
+                            tool = "module_builder"
+                        elif any(x in content for x in ("activity", "game", "demonstration", "experiment")):
+                            tool = "activity_generator"
+                        else:
+                            tool = "expert_teacher"
+                
+                # Fallback 2: default to expert_teacher if still None
+                if not tool:
+                    tool = "expert_teacher"
+                    
+                session.tool = tool
+                await session.save()
+                logger.info(f"Backfilled session {session.session_id} with tool: {tool}")
+        except Exception as e:
+            logger.error(f"Error during database backfill of session tools: {str(e)}")

@@ -2,12 +2,13 @@
 Content Explainer Tool
 ======================
 
-Retrieves relevant NCERT content using RAG embeddings and generates
-grounded explanations for teachers.
+Retrieves relevant NCERT content using RAGFlow Chat Assistant
+and generates grounded explanations for teachers.
 """
 
 import json
 import structlog
+import asyncio
 import numpy as np
 from typing import Optional, List, Dict
 from google import genai
@@ -18,58 +19,38 @@ from .base import BaseTool
 
 logger = structlog.get_logger(__name__)
 
+# Prompt to structure the RAGFlow assistant output
+STRUCTURING_PROMPT = """You are an expert helper that formats a RAG assistant's response and retrieved sources into a clean JSON structure for classroom teachers.
 
-CONTENT_EXPLAINER_PROMPT = """You are an expert educational content explainer for Indian teachers using NCERT curriculum.
+Original Assistant Response:
+{assistant_response}
 
-=== CRITICAL: LANGUAGE REQUIREMENT ===
-TEACHER'S LANGUAGE: {language}
-YOU MUST RESPOND IN: {language}
+Retrieved Sources:
+{retrieved_sources}
 
-If {language} is "Hinglish", you MUST write in Hinglish (mix Hindi and English words):
-- Use Hindi words: hai, hota, hoti, mein, ka, ke, ko, se, aur, yeh, ek, etc.
-- Use English for technical terms: photosynthesis, carbon dioxide, chlorophyll
-- Example: "Photosynthesis ek process hai jismein plants apna food banate hain. Isme chlorophyll sunlight ko capture karta hai aur carbon dioxide aur water ko use karke carbohydrates banate hain."
-
-If {language} is "English", use pure English.
-If {language} is "Hindi", use Devanagari script.
-
-=== CONTENT GUIDELINES ===
-- Answer ONLY using information from the retrieved NCERT passages below
-- If the passages don't contain enough information, say "The retrieved content doesn't fully cover this topic"
-- Explain concepts in SIMPLE language suitable for rural Indian teachers
-- Include PRACTICAL EXAMPLES from the Indian context
-- Keep explanations CONCISE (2-3 paragraphs maximum)
-
-=== RETRIEVED NCERT CONTENT ===
-{retrieved_content}
-
-=== TEACHER'S QUESTION ===
+Teacher's Original Question:
 {question}
 
-=== REMINDER: RESPOND IN {language} ===
-Do NOT translate. Write naturally in {language} as shown in the examples above.
-
 === OUTPUT FORMAT ===
-Provide your response in JSON format:
+You must respond with a JSON object conforming exactly to this structure:
 {{
-    "explanation": "Clear, simple explanation based on retrieved content",
+    "explanation": "Main answer formatted into 2-3 paragraphs. Keep it clear, simple, and grounded in the retrieved content.",
     "key_points": ["Point 1", "Point 2", "Point 3"],
-    "examples": ["Example 1 from Indian context", "Example 2"],
-    "sources": ["Class X | Mathematics | Chapter 3", "Class IX | Science | Chapter 5"],
-    "confidence": 0.9,
+    "examples": ["Indian context practical classroom example 1", "Example 2"],
+    "sources": ["Class|Subject|Chapter name or document source 1", "Source 2"],
+    "confidence": 0.85,
     "coverage": "complete"
 }}
 
 Where:
-- explanation: Main answer to the teacher's question (2-3 paragraphs)
-- key_points: 3-5 important takeaways
-- examples: Practical examples for classroom use
-- sources: List the NCERT sources (Class|Subject|Book|Page)
-- confidence: 0.0-1.0 based on how well retrieved content answers the question
-- coverage: "complete", "partial", or "insufficient"
+- explanation: Main detailed explanation.
+- key_points: 3-5 key takeaways.
+- examples: Classroom examples.
+- sources: List of source documents from retrieved sources.
+- confidence: A float score between 0.0 and 1.0 indicating how well the explanation is grounded in the retrieved sources. Use lower confidence (e.g., < 0.4) if the retrieved sources do not support or are irrelevant to the answer.
+- coverage: Set to "complete", "partial", or "insufficient" based on how much of the question's required information is covered by the retrieved sources.
 
-IMPORTANT: Base your answer ONLY on the retrieved content. Do not add external knowledge."""
-
+IMPORTANT: Return ONLY valid JSON, do not wrap in markdown block formatting."""
 
 class MockDatabase:
     """Mock database to maintain backward compatibility with legacy scripts."""
@@ -78,17 +59,17 @@ class MockDatabase:
     def close(self):
         pass
 
-
 class ContentExplainerTool(BaseTool):
     """
-    Retrieves relevant NCERT content and generates grounded explanations.
+    Converses with RAGFlow Chat Assistant and generates structured explanations.
     """
     
     name = "content_explainer"
-    description = "Explains concepts using NCERT textbook content via RAG embeddings"
+    description = "Explains concepts using NCERT textbook content via RAGFlow stateful Chat Assistant"
     
     def __init__(
         self,
+        api_key: Optional[str] = None,
         model_name: str = "models/gemini-2.5-flash",
         top_k: int = 5,
         temperature: float = 0.3,
@@ -97,105 +78,28 @@ class ContentExplainerTool(BaseTool):
     ):
         """
         Initialize the Content Explainer tool.
-        
-        Args:
-            model_name: Gemini model for text generation
-            top_k: Number of relevant passages to retrieve
-            temperature: Generation temperature (low for factual content)
         """
         self.db = MockDatabase()
-        self.client = genai.Client(api_key=self._get_api_key())
+        self.client = genai.Client(api_key=self._get_api_key(api_key))
         self.model_name = model_name
         self.top_k = top_k
         self.temperature = temperature
         
-        logger.info("ContentExplainerTool initialized with RAGFlow backend")
+        logger.info("ContentExplainerTool initialized with RAGFlow stateful Chat Assistant")
     
-    def _get_api_key(self) -> str:
-        """Get Gemini API key from environment."""
+    def _get_api_key(self, api_key: Optional[str] = None) -> str:
+        """Get API key from parameter or environment."""
         import os
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable not set")
-        return api_key
-    
-    async def _retrieve_relevant_content(
-        self,
-        query: str,
-        filters: Optional[Dict[str, str]] = None
-    ) -> List[Dict]:
-        """
-        Retrieve relevant NCERT passages using RAGFlow.
-        
-        Args:
-            query: Teacher's question
-            filters: Optional filters (e.g., {"class": "10", "subject": "Mathematics"})
-            
-        Returns:
-            List of relevant documents with content and metadata
-        """
-        from services.ragflow_v2 import ragflow_service
+        key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+        if not key:
+            raise ValueError("Neither GEMINI_API_KEY nor OPENROUTER_API_KEY environment variable is set")
+        return key
 
-        # Build retrieval query using filters to guide search
-        query_parts = []
-        if filters:
-            if filters.get("class"):
-                query_parts.append(filters["class"])
-            if filters.get("subject"):
-                query_parts.append(filters["subject"])
-            if filters.get("language"):
-                query_parts.append(filters["language"])
-        query_parts.append(query)
-        search_query = " ".join(query_parts)
-
-        logger.info(f"Querying RAGFlow with: {search_query}")
-        results = await ragflow_service.retrieve_raw_chunks_async(
-            question=search_query,
-            limit=self.top_k
-        )
-        
-        logger.info("rag_search_complete",
-            query_preview=query[:50],
-            num_results=len(results),
-            top_result_similarity=results[0].get('similarity', 0.0) if results else 0.0
-        )
-        return results
-    
-    def _format_retrieved_content(self, results: List[Dict]) -> str:
-        """
-        Format retrieved passages for prompt.
-        
-        Args:
-            results: List of retrieved documents
-            
-        Returns:
-            Formatted string with numbered passages
-        """
-        if not results:
-            return "No relevant NCERT content found in database."
-        
-        formatted = []
-        for i, doc in enumerate(results, 1):
-            source = doc['source']
-            content = doc['content']
-            similarity = doc.get('similarity', 0.0)
-            
-            formatted.append(
-                f"[Passage {i}] (Source: {source}, Relevance: {similarity:.2f})\n{content}\n"
-            )
-        
-        return "\n".join(formatted)
-    
     async def run(self, query: str, context: Optional[dict] = None) -> dict:
         """
         Execute the content explainer tool.
         
-        Args:
-            query: Teacher's question about content
-            context: Optional context with filters (class, subject, language)
-            
-        Returns:
-            ContentExplanationOutput dictionary
+        Converses with RAGFlow Chat Assistant, then formats the output into structured JSON.
         """
         try:
             logger.info("content_explainer_start",
@@ -209,39 +113,116 @@ class ContentExplainerTool(BaseTool):
                 if context.get("class"):
                     filters["class"] = context["class"]
                 if context.get("subject"):
-                    # Capitalize subject for database matching (Science, Mathematics, etc.)
                     filters["subject"] = context["subject"].capitalize()
                 if context.get("language"):
-                    # Capitalize language for database matching (English, Hindi, etc.)
                     filters["language"] = context["language"].capitalize()
             
-            # Retrieve relevant content
-            retrieved_docs = await self._retrieve_relevant_content(query, filters)
+            # Get FastAPI session_id
+            fastapi_session_id = (context or {}).get("session_id") or "default_session"
             
-            if not retrieved_docs:
+            # Import ragflow_service and settings to resolve content chatbot ID
+            from services.ragflow_v2 import ragflow_service
+            from config import settings
+            content_chat_id = settings.RAGFLOW_CHAT_ID
+            
+            # Try lookup in MongoDB ChatSession
+            ragflow_session_id = None
+            chat_session = None
+            try:
+                from models.chat_session import ChatSession as MongoChatSession
+                chat_session = await MongoChatSession.find_one(MongoChatSession.session_id == fastapi_session_id)
+                if chat_session and chat_session.ragflow_session_id:
+                    ragflow_session_id = chat_session.ragflow_session_id
+                    logger.info(f"Retrieved existing ragflow_session_id from MongoDB: {ragflow_session_id}")
+            except Exception as db_err:
+                logger.warning(f"MongoDB/Beanie not initialized or lookup failed: {db_err}")
+            
+            # Fallback to listing RAGFlow sessions
+            if not ragflow_session_id:
+                sessions = await asyncio.to_thread(
+                    ragflow_service.list_sessions,
+                    chat_id=content_chat_id
+                )
+                for s in sessions:
+                    if s.get("name") == fastapi_session_id:
+                        ragflow_session_id = s.get("id")
+                        break
+            
+            # If not found, create new session in RAGFlow
+            if not ragflow_session_id:
+                if chat_session and chat_session.title and chat_session.title != "New Chat":
+                    session_name = chat_session.title
+                else:
+                    session_name = f"Chat: {query[:50]}"
+                
+                logger.info(f"Creating new RAGFlow chat session for: '{session_name}'")
+                ragflow_session_id = await asyncio.to_thread(
+                    ragflow_service.create_new_session,
+                    chat_id=content_chat_id,
+                    name=session_name
+                )
+                
+                # Save new ragflow_session_id to MongoDB
+                if ragflow_session_id and chat_session:
+                    try:
+                        chat_session.ragflow_session_id = ragflow_session_id
+                        await chat_session.save()
+                        logger.info(f"Saved new ragflow_session_id {ragflow_session_id} to MongoDB for session {fastapi_session_id}")
+                    except Exception as save_err:
+                        logger.error(f"Failed to save ragflow_session_id to MongoDB: {save_err}")
+            
+            if not ragflow_session_id:
+                raise Exception("Failed to get or create RAGFlow chat session")
+ 
+            # 3. Call RAGFlow stateful completions
+            logger.info(f"Querying RAGFlow Chat Assistant for: '{query}' with session: {ragflow_session_id} and chat ID: {content_chat_id} and filters: {filters}")
+            resp = await asyncio.to_thread(
+                ragflow_service.chat_completion_stateful,
+                question=query,
+                chat_id=content_chat_id,
+                session_id=ragflow_session_id,
+                filters=filters
+            )
+            
+            # 4. Parse RAGFlow response
+            if not resp or resp.get("code") != 0:
+                error_msg = resp.get("message") or "Failed to get response from RAGFlow"
+                raise Exception(error_msg)
+                
+            assistant_response = resp.get("data", {}).get("answer", "")
+            chunks = resp.get("data", {}).get("reference", {}).get("chunks", []) or []
+            
+            # Use all chunks returned by RAGFlow (similarity filtering is already handled on the RAGFlow server side)
+            valid_chunks = chunks
+            
+            # If no content and no chunks were returned by RAGFlow, return fallback/refusal
+            if not valid_chunks and not assistant_response:
+                logger.info("No content or chunks returned by RAGFlow. Returning insufficient confidence to trigger fallback.")
                 return {
-                    "explanation": "I couldn't find relevant content in the NCERT database for this question.",
+                    "explanation": "I couldn't find any relevant content in the textbooks to answer this query.",
                     "key_points": [],
                     "examples": [],
                     "sources": [],
                     "confidence": 0.0,
                     "coverage": "insufficient",
-                    "retrieved_passages": 0
+                    "retrieved_passages": 0,
+                    "filters_applied": filters if filters else None
                 }
             
-            # Format content for prompt
-            formatted_content = self._format_retrieved_content(retrieved_docs)
+            # 5. Format retrieved sources for prompt
+            formatted_sources = []
+            for i, chunk in enumerate(valid_chunks, 1):
+                doc_name = chunk.get("document_name") or chunk.get("source") or f"Doc_{i}"
+                content = chunk.get("content") or chunk.get("text") or ""
+                formatted_sources.append(f"[{i}] Source: {doc_name}\nContent: {content}\n")
             
-            # Get detected language from context
-            detected_language = context.get('detected_language', 'English') if context else 'English'
+            sources_str = "\n".join(formatted_sources) if formatted_sources else "No retrieved sources."
             
-            logger.info("content_explainer_language", detected=detected_language, query=query[:50])
-            
-            # Generate explanation using Gemini
-            prompt = CONTENT_EXPLAINER_PROMPT.format(
-                retrieved_content=formatted_content,
-                question=query,
-                language=detected_language
+            # 6. Format RAGFlow assistant output using Gemini/OpenRouter to fit our schema
+            prompt = STRUCTURING_PROMPT.format(
+                assistant_response=assistant_response,
+                retrieved_sources=sources_str,
+                question=query
             )
             
             response = await self.client.aio.models.generate_content(
@@ -253,11 +234,17 @@ class ContentExplainerTool(BaseTool):
                 )
             )
             
-            # Parse JSON response
+            # Parse structured JSON response
             result = json.loads(response.text)
             
-            # Add metadata
-            result["retrieved_passages"] = len(retrieved_docs)
+            # Parse confidence and coverage from LLM result naturally
+            if "confidence" not in result:
+                result["confidence"] = 0.8
+            if "coverage" not in result:
+                result["coverage"] = "complete"
+            
+            # Add metadata (set to actual number of valid chunks)
+            result["retrieved_passages"] = len(valid_chunks)
             result["filters_applied"] = filters if filters else None
             
             logger.info(f"ContentExplainer completed with confidence: {result.get('confidence', 0.0)}")
@@ -285,7 +272,7 @@ class ContentExplainerTool(BaseTool):
                 "coverage": "insufficient",
                 "error": str(e)
             }
-    
+            
     def close(self):
         """Close database connection."""
         self.db.close()

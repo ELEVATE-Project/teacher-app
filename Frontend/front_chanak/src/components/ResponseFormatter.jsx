@@ -1180,6 +1180,17 @@ const ResponseFormatter = ({ toolUsed, result, text, resources }) => {
     return <DefaultResponse text={text} />;
   }
 
+  // If the result contains a simple warning or simple response text, render as DefaultResponse
+  if (effectiveResult && "response" in effectiveResult && 
+      !("activity_name" in effectiveResult) && 
+      !("explanation" in effectiveResult) && 
+      !("motivation_title" in effectiveResult) && 
+      !("crisis_type" in effectiveResult) && 
+      !("situation_analysis" in effectiveResult) && 
+      !("sentiment" in effectiveResult)) {
+    return <DefaultResponse text={effectiveResult.response} />;
+  }
+
   // Helper to wrap response with resources section
   const withResources = (component) => (
     <div>

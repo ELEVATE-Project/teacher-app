@@ -35,6 +35,11 @@ class OrchestratorInput(BaseModel):
         default=False,
         description="Force quick answer mode for fast, short responses"
     )
+    
+    selected_tool: Optional[str] = Field(
+        default=None,
+        description="Manually override routing to run a specific tool directly"
+    )
 
 
 class ActivityOutput(BaseModel):

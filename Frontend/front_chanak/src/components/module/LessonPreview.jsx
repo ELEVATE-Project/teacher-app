@@ -240,9 +240,9 @@ function CarouselView({
           <button
             onClick={prevSlide}
             disabled={currentSlide === 0}
-            className="flex items-center gap-2 px-4 py-2 border-2 border-[#000000] rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FDE047] shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 text-white"
+            className="flex items-center gap-2 px-4 py-2 border-2 border-[#000000] rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white hover:bg-[#FDE047] hover:text-[#000000] shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5"
           >
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Previous
@@ -265,7 +265,7 @@ function CarouselView({
           <button
             onClick={nextSlide}
             disabled={currentSlide === slides.length - 1}
-            className="flex items-center gap-2 px-4 py-2 border-2 border-[#000000] rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FDE047] shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 text-white"
+            className="flex items-center gap-2 px-4 py-2 border-2 border-[#000000] rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white hover:bg-[#FDE047] hover:text-[#000000] shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5"
           >
             Next
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

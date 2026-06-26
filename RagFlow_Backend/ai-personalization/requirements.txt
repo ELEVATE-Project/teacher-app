@@ -6,3 +6,4 @@ supabase-auth==2.31.0
 python-dotenv==1.0.0
 requests==2.34.2
 bcrypt==5.0.0
+PyJWT==2.8.0
