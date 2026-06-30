@@ -35,6 +35,7 @@ class Settings:
     # Environment
     ENV: str = os.getenv("ENV", "development")
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
+    PORT: int = int(os.getenv("PORT", "3000"))
     
     # Gemini API Configuration
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")

@@ -14,8 +14,8 @@ import os
 import sys
 
 # Load environment variables from root first
-from dotenv import load_dotenv
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 # Apply OpenRouter patch for legacy google.generativeai
 import openrouter_generativeai_patch

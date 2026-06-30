@@ -98,13 +98,13 @@ Dynamically recommends which student to question and what difficulty level to us
 <tr>
 <td colspan="2" valign="top">
 
-### <img src="figure/twilio_transp.png" alt="Twilio" width="24px" style="vertical-align: middle;" /> **Offline Mode (Twilio Integration)**
+### <img src="figure/twilio_transp.png" alt="Twilio" width="24px" style="vertical-align: middle;" /> **Offline Mode (Twilio Integration - Disabled)**
 #### *Zero-Internet AI Access*
 
 Enables teachers to interact with Chanakya's AI using regular phone calls or SMS—no internet, smartphone, or digital literacy required.
 
 **What it does:**
-- Voice and SMS-based AI interaction via Twilio
+- Voice and SMS-based AI interaction via Twilio (currently disabled)
 - Works on basic feature phones
 - Speech and text AI integration
 - Delivers guidance in low-connectivity areas
@@ -120,7 +120,7 @@ Enables teachers to interact with Chanakya's AI using regular phone calls or SMS
 ### Prerequisites
 
 - **Python 3.11+** | **Node.js 18+** | **MongoDB** (Atlas or local)
-- API Keys: [Google Gemini](https://aistudio.google.com/apikey), [Sarvam AI](https://www.sarvam.ai/)
+- API Keys: [OpenRouter](https://openrouter.ai/), [Sarvam AI](https://www.sarvam.ai/)
 
 ---
 
@@ -175,7 +175,7 @@ git clone https://github.com/Kautilya346/Chanakya.git
 cd Chanakya
 
 # Edit .env with your API keys
-# Required: GEMINI_API_KEY, VITE_SARVAM_API_KEY
+# Required: OPENROUTER_API_KEY, VITE_SARVAM_API_KEY
 ```
 
 ### Step 2: Backend Setup
@@ -243,7 +243,7 @@ All configuration is stored in a single `.env` file in the project root:
 
 ```env
 # ==================== Required ====================
-GEMINI_API_KEY=your-gemini-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key
 
 # ==================== Sarvam AI (Voice) ====================
 VITE_SARVAM_API_KEY=your-sarvam-key
@@ -256,11 +256,6 @@ VITE_API_URL=http://localhost:3000
 # ==================== MongoDB ====================
 MONGODB_URL=your-mongodb-connection-string
 DATABASE_NAME=Chanakya
-
-# ==================== Optional ====================
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_PHONE_NUMBER=
 ```
 
 ---

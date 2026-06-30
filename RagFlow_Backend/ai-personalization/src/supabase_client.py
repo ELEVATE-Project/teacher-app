@@ -1,12 +1,11 @@
 # TODO : Clear this out. 
 import os
 from supabase import create_client, Client
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
 
-current_dir = Path(__file__).parent
-dotenv_path = current_dir.parent.parent.parent / '.env'
-load_dotenv(dotenv_path=dotenv_path)
+# Load environment variables searching dynamically
+load_dotenv(find_dotenv())
 
 
 class SupabaseDB:

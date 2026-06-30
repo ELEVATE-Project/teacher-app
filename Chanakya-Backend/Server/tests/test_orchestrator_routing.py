@@ -8,21 +8,21 @@ and expert_teacher based on query type.
 
 import asyncio
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from orchestrator import ChanakyaOrchestrator
 from orchestrator.schemas import OrchestratorInput
 
 # Load environment variables
-load_dotenv()
+load_dotenv(find_dotenv())
 
 
 async def test_orchestrator_routing():
     """Test orchestrator routing to appropriate tools."""
     
     # Get API key
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY")
     if not api_key:
-        print("❌ GEMINI_API_KEY not set")
+        print("❌ Neither OPENROUTER_API_KEY nor GEMINI_API_KEY set")
         return
     
     # Initialize orchestrator

@@ -5,16 +5,10 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-# Load environment variables
-root_dir = Path(__file__).parent.parent.parent
-env_path = root_dir / '.env'
-load_dotenv(dotenv_path=env_path)
-
-# Also try loading from Server/.env
-server_env = root_dir / 'Server' / '.env'
-load_dotenv(dotenv_path=server_env)
+# Load environment variables searching dynamically
+load_dotenv(find_dotenv())
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

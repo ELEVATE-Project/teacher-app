@@ -10,11 +10,10 @@ import json
 import re
 from pathlib import Path
 from typing import Dict, Any, List
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-# Load .env from project root (Chanakya/)
-_root_dir = Path(__file__).resolve().parent.parent.parent.parent
-load_dotenv(dotenv_path=_root_dir / ".env")
+# Load .env searching upwards to workspace root
+load_dotenv(find_dotenv())
 
 # Try to import Google Generative AI, handle if not available
 try:

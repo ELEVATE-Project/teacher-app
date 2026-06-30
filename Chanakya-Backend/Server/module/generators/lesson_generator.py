@@ -12,15 +12,12 @@ import time
 import logging
 import os
 from typing import List, Optional, Dict, Any, Tuple
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from google import genai
 from google.genai import types
 
-# Load .env from project root (Chanakya/)
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(_current_dir)))
-_env_path = os.path.join(_root_dir, '.env')
-load_dotenv(_env_path)
+# Load .env searching upwards to workspace root
+load_dotenv(find_dotenv())
 
 from ..models.schemas import (
     Lesson,
