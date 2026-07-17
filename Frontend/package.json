@@ -1,0 +1,26 @@
+{
+  "name": "chanakya-frontend-parent",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "host",
+    "dashboard-mfe",
+    "qna-chat-mfe",
+    "activity-chat-mfe",
+    "module-chat-mfe",
+    "discuss-mfe"
+  ],
+  "scripts": {
+    "dev:host": "npm run dev -w host",
+    "dev:dashboard": "concurrently --kill-others \"npm run dev -w dashboard-mfe\" \"npm run preview -w dashboard-mfe\"",
+    "dev:qna": "concurrently --kill-others \"npm run dev -w qna-chat-mfe\" \"npm run preview -w qna-chat-mfe\"",
+    "dev:activity": "concurrently --kill-others \"npm run dev -w activity-chat-mfe\" \"npm run preview -w activity-chat-mfe\"",
+    "dev:module": "concurrently --kill-others \"npm run dev -w module-chat-mfe\" \"npm run preview -w module-chat-mfe\"",
+    "dev:discuss": "concurrently --kill-others \"npm run dev -w discuss-mfe\" \"npm run preview -w discuss-mfe\"",
+    "dev": "concurrently --kill-others \"npm run dev:host\" \"npm run dev:dashboard\" \"npm run dev:qna\" \"npm run dev:activity\" \"npm run dev:module\" \"npm run dev:discuss\"",
+    "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
