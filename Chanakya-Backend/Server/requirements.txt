@@ -42,8 +42,8 @@ python-dotenv>=1.0.0
 uvicorn>=0.27.0
 h11>=0.14.0
 fastapi>=0.109.0
-motor>=3.3.0
-beanie>=1.23.0
+motor>=3.3.0,<3.7.0
+beanie>=1.23.0,<2.0.0
 python-jose[cryptography]>=3.3.0
 email-validator>=2.0.0
 bcrypt>=4.0.1
@@ -61,6 +61,10 @@ sarvamai>=0.1.22
 reportlab>=4.0.0
 python-docx>=1.0.0
 python-pptx>=0.6.21
+
+# PostgreSQL drivers
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
 
 # PDF compiler pipeline (used by pdf_compiler_service)
 pdfplumber>=0.10.0
