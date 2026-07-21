@@ -7,6 +7,7 @@ import federation from '@originjs/vite-plugin-federation'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, '../../'), '')
   const API_URL = env.VITE_API_URL || env.API_URL || 'http://localhost:3000'
+  const mfePort = parseInt(env.VITE_ACTIVITY_CHAT_MFE_PORT || '5177')
 
   return {
     plugins: [
@@ -23,7 +24,7 @@ export default defineConfig(({ mode }) => {
     envDir: path.resolve(__dirname, '../../'),
     server: {
       host: true,
-      port: 5177,
+      port: mfePort,
       cors: true,
       proxy: {
         '/api': {
@@ -34,7 +35,7 @@ export default defineConfig(({ mode }) => {
     },
     preview: {
       host: true,
-      port: 5177,
+      port: mfePort,
       cors: true
     },
     build: {

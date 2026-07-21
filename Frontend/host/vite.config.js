@@ -12,17 +12,30 @@ export default defineConfig(({ mode }) => {
   const API_URL = env.VITE_API_URL || env.API_URL || 'http://localhost:3000'
   const frontendPort = parseInt(env.FRONTEND_PORT || env.PORT || '5173')
 
+  // Resolve microfrontend ports and URLs from environment
+  const DASHBOARD_PORT = env.VITE_DASHBOARD_MFE_PORT || '5174'
+  const QNA_PORT = env.VITE_QNA_CHAT_MFE_PORT || '5175'
+  const DISCUSS_PORT = env.VITE_DISCUSS_MFE_PORT || '5176'
+  const ACTIVITY_PORT = env.VITE_ACTIVITY_CHAT_MFE_PORT || '5177'
+  const MODULE_PORT = env.VITE_MODULE_CHAT_MFE_PORT || '5178'
+
+  const DASHBOARD_URL = env.VITE_DASHBOARD_MFE_URL || `http://localhost:${DASHBOARD_PORT}`
+  const QNA_URL = env.VITE_QNA_CHAT_MFE_URL || `http://localhost:${QNA_PORT}`
+  const DISCUSS_URL = env.VITE_DISCUSS_MFE_URL || `http://localhost:${DISCUSS_PORT}`
+  const ACTIVITY_URL = env.VITE_ACTIVITY_CHAT_MFE_URL || `http://localhost:${ACTIVITY_PORT}`
+  const MODULE_URL = env.VITE_MODULE_CHAT_MFE_URL || `http://localhost:${MODULE_PORT}`
+
   return {
     plugins: [
       react(),
       federation({
         name: 'host',
         remotes: {
-          dashboard_mfe: 'http://localhost:5174/assets/remoteEntry.js',
-          qna_chat_mfe: 'http://localhost:5175/assets/remoteEntry.js',
-          activity_chat_mfe: 'http://localhost:5177/assets/remoteEntry.js',
-          module_chat_mfe: 'http://localhost:5178/assets/remoteEntry.js',
-          discuss_mfe: 'http://localhost:5176/assets/remoteEntry.js',
+          dashboard_mfe: `${DASHBOARD_URL}/assets/remoteEntry.js`,
+          qna_chat_mfe: `${QNA_URL}/assets/remoteEntry.js`,
+          activity_chat_mfe: `${ACTIVITY_URL}/assets/remoteEntry.js`,
+          module_chat_mfe: `${MODULE_URL}/assets/remoteEntry.js`,
+          discuss_mfe: `${DISCUSS_URL}/assets/remoteEntry.js`,
         },
         shared: ['react', 'react-dom', 'react-router-dom', 'axios']
       })
