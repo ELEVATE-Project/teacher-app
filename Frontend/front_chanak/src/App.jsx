@@ -58,13 +58,21 @@ function App() {
 
               <Route
                 path="/chat"
-                element={<Navigate to="/chat/qna" replace />}
+                element={<Navigate to="/chat/dynamic" replace />}
               />
               <Route
                 path="/chat/module-builder"
+                element={<Navigate to="/chat/dynamic" replace />}
+              />
+              <Route
+                path="/chat/activity"
+                element={<Navigate to="/chat/dynamic" replace />}
+              />
+              <Route
+                path="/chat/dynamic"
                 element={
                   <ProtectedRoute>
-                    <ChatInterface mode="module_builder" />
+                    <ChatInterface mode="general" />
                   </ProtectedRoute>
                 }
               />
@@ -73,14 +81,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ChatInterface mode="expert_teacher" />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/chat/activity"
-                element={
-                  <ProtectedRoute>
-                    <ChatInterface mode="activity_generator" />
                   </ProtectedRoute>
                 }
               />

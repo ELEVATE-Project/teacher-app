@@ -38,7 +38,7 @@ function ChatInterface({ mode }) {
   const inputRef = useRef(null);
   const [lockedMode, setLockedMode] = useState(() => {
     const initial = getInitialMode();
-    return initial === "general" ? null : initial;
+    return initial;
   });
   const attachInputRef = useRef(null);
   const imageInputRef = attachInputRef; // alias for backward compatibility
@@ -92,15 +92,10 @@ function ChatInterface({ mode }) {
       activeMode = params.get("mode");
     }
 
-    if (activeMode) {
-      setChatMode(activeMode);
-      setLockedMode(activeMode);
-      console.log(`[DEBUG] Active Screen: Chat Interface | Route: ${window.location.pathname}${window.location.search} | Mode Activated: ${activeMode}`);
-    } else {
-      setLockedMode(null);
-      setChatMode("general");
-      console.log(`[DEBUG] Active Screen: Chat Interface | Route: ${window.location.pathname}${window.location.search} | Mode Activated: Dynamic/General`);
-    }
+    const finalMode = activeMode || "general";
+    setChatMode(finalMode);
+    setLockedMode(finalMode);
+    console.log(`[DEBUG] Active Screen: Chat Interface | Route: ${window.location.pathname}${window.location.search} | Mode Activated: ${finalMode}`);
   }, [mode, window.location.pathname, window.location.search]);
 
   const loadChatHistory = async () => {
@@ -1035,35 +1030,33 @@ function ChatInterface({ mode }) {
                        ),
                      },
                    ].filter(feature => {
-                      const allowedModes = ["module_builder", "expert_teacher", "activity_generator"];
-                      if (!allowedModes.includes(feature.mode)) return false;
-                      return !lockedMode ? true : feature.mode === lockedMode;
-                    })
+                       const allowedModes = ["module_builder", "expert_teacher", "activity_generator"];
+                       if (!allowedModes.includes(feature.mode)) return false;
+                       return (!lockedMode || lockedMode === "general") ? true : feature.mode === lockedMode;
+                     })
                     .map((feature) => (
                      <button
                        key={feature.name}
                        className="p-3 rounded-lg border-2 border-[#000000] text-left transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5"
                        style={{ backgroundColor: feature.color }}
                        onClick={() => {
-                         if (feature.mode === "module_builder") {
-                           setChatMode("module_builder");
-                           setInput("Create a module for Class 7 Geography");
-                         } else if (feature.mode === "crisis_handler") {
-                           setChatMode("crisis_handler");
-                           setInput("A student is throwing tantrums in class. How should I respond?");
-                         } else if (feature.mode === "activity_generator") {
-                           setChatMode("activity_generator");
-                           setInput("Generate a classroom activity for Class 8 Mathematics");
-                         } else if (feature.mode === "classroom_guidance") {
-                           setChatMode("classroom_guidance");
-                           setInput("I just finished teaching algebra. Plan my next reflection and guidance.");
-                         } else if (feature.mode === "expert_teacher") {
-                           setChatMode("expert_teacher");
-                           setInput("How do you teach quantum physics concepts to high schoolers?");
-                         } else {
-                           setInput(`Activate ${feature.name}`);
-                         }
-                       }}
+                          if (lockedMode !== "general") {
+                            setChatMode(feature.mode);
+                          }
+                          if (feature.mode === "module_builder") {
+                            setInput("Create a module for Class 7 Geography");
+                          } else if (feature.mode === "crisis_handler") {
+                            setInput("A student is throwing tantrums in class. How should I respond?");
+                          } else if (feature.mode === "activity_generator") {
+                            setInput("Generate a classroom activity for Class 8 Mathematics");
+                          } else if (feature.mode === "classroom_guidance") {
+                            setInput("I just finished teaching algebra. Plan my next reflection and guidance.");
+                          } else if (feature.mode === "expert_teacher") {
+                            setInput("How do you teach quantum physics concepts to high schoolers?");
+                          } else {
+                            setInput(`Activate ${feature.name}`);
+                          }
+                        }}
                      >
                        <div className="flex items-center gap-3">
                          <div className="text-[#000000]">{feature.icon}</div>
@@ -1564,13 +1557,14 @@ function ChatInterface({ mode }) {
                      </div>
                    ) : (
                      <div className="flex items-center gap-2 px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-[#F3F4F6] text-[#000000] shadow-[2px_2px_0px_0px_#000000]">
-                       <span>
-                         {lockedMode === "module_builder" && "📚 Module Creator Locked"}
-                         {lockedMode === "expert_teacher" && "🎓 Expert Q&A Locked"}
-                         {lockedMode === "activity_generator" && "🪁 Activity Generator Locked"}
-                         {lockedMode !== "module_builder" && lockedMode !== "expert_teacher" && lockedMode !== "activity_generator" && `🔒 ${lockedMode} Mode Locked`}
-                       </span>
-                     </div>
+                        <span>
+                          {lockedMode === "general" && "🤖 Orchestrator Mode"}
+                          {lockedMode === "module_builder" && "📚 Module Creator Locked"}
+                          {lockedMode === "expert_teacher" && "🎓 Expert Q&A Locked"}
+                          {lockedMode === "activity_generator" && "🪁 Activity Generator Locked"}
+                          {lockedMode !== "general" && lockedMode !== "module_builder" && lockedMode !== "expert_teacher" && lockedMode !== "activity_generator" && `🔒 ${lockedMode} Mode Locked`}
+                        </span>
+                      </div>
                    )}
 
                   {/* Reopen Preview Button */}

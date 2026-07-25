@@ -33,7 +33,7 @@ class LessonStorageService:
         Args:
             db_path: Path parameter (ignored, kept for backward compatibility).
         """
-        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
         self._pool = None
         self._initialized = False
         

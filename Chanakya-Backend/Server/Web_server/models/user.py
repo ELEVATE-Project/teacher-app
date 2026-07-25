@@ -3,11 +3,11 @@ User document model for MongoDB using Beanie.
 """
 from datetime import datetime
 from typing import Optional, List
-from beanie import Document
+from models.base import PostgresDocument
 from pydantic import EmailStr, Field
 
 
-class User(Document):
+class User(PostgresDocument):
     """User document model for MongoDB."""
     
     name: str = Field(..., min_length=1, max_length=100)

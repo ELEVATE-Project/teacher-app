@@ -1,7 +1,7 @@
 import os
 import psycopg2
 
-dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
 
 print("="*60)
 print("🧹 Clearing PostgreSQL Tables")

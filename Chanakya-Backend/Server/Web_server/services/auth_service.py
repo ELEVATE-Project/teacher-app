@@ -8,7 +8,6 @@ from schemas.auth import SignUpRequest, LoginRequest
 from schemas.user import UserResponse
 from utils.password import hash_password, verify_password
 from utils.jwt import create_access_token
-from beanie.exceptions import RevisionIdWasChanged
 
 
 class AuthService:

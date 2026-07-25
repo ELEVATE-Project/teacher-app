@@ -18,7 +18,7 @@ class ConversationStorage:
     def __init__(self, db_path: Optional[str] = None):
         """Initialize storage with database DSN."""
         # Use DB_URL from environment or fallback to default local postgres
-        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
         self._pool = None
         self._initialized = False
     

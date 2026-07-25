@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import List, Optional
 from models.chat_session import ChatSession, ChatMessage
 from schemas.chat import ChatSessionSchema, ChatMessageSchema
-from beanie import PydanticObjectId
 import structlog
 
 logger = structlog.get_logger(__name__)

@@ -4,11 +4,11 @@ Converted from SQLAlchemy models in feedback_system/backend/database.py
 """
 from datetime import datetime
 from typing import Optional, Dict, Any
-from beanie import Document, Indexed
+from models.base import PostgresDocument
 from pydantic import Field
 
 
-class Class(Document):
+class Class(PostgresDocument):
     """Classroom document model for MongoDB."""
     
     name: str = Field(..., min_length=1, max_length=100)
@@ -29,10 +29,10 @@ class Class(Document):
         }
 
 
-class Student(Document):
+class Student(PostgresDocument):
     """Student document model for MongoDB."""
     
-    class_id: Indexed(str)  # type: ignore - Reference to Class
+    class_id: str
     name: str = Field(..., min_length=1, max_length=100)
     level: str = Field(default="medium", description="Student level: weak, medium, strong")
     confidence: float = Field(default=2.5, ge=1.0, le=5.0, description="Confidence score 1-5")
@@ -60,10 +60,10 @@ class Student(Document):
         }
 
 
-class Question(Document):
+class Question(PostgresDocument):
     """Question document model for MongoDB."""
     
-    topic: Indexed(str)  # type: ignore
+    topic: str
     difficulty: str = Field(..., description="Difficulty: easy, medium, hard")
     text: str = Field(..., min_length=1)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -85,10 +85,10 @@ class Question(Document):
         }
 
 
-class ClassSession(Document):
+class ClassSession(PostgresDocument):
     """Class session document model for MongoDB."""
     
-    class_id: Indexed(str)  # type: ignore - Reference to Class
+    class_id: str
     topic: str = Field(..., min_length=1, max_length=200)
     started_at: datetime = Field(default_factory=datetime.utcnow)
     ended_at: Optional[datetime] = None
@@ -111,11 +111,11 @@ class ClassSession(Document):
         }
 
 
-class StudentResponse(Document):
+class StudentResponse(PostgresDocument):
     """Student response document model for MongoDB."""
     
-    session_id: Indexed(str)  # type: ignore - Reference to ClassSession
-    student_id: Indexed(str)  # type: ignore - Reference to Student
+    session_id: str
+    student_id: str
     question_id: Optional[str] = Field(None, description="Reference to Question")
     rating: int = Field(..., ge=1, le=5, description="Rating 1-5 stars")
     difficulty_asked: str = Field(..., description="Difficulty: easy, medium, hard")

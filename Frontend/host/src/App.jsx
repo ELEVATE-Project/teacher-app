@@ -64,19 +64,13 @@ function App() {
                   }
                 />
 
-                {/* Microfrontend: Activity Chat Module */}
+                {/* Consolidated single Chat interface */}
+                <Route path="/chat/dynamic/*" element={<Navigate to="/chat/qna/dynamic" replace />} />
+                <Route path="/chat/dynamic" element={<Navigate to="/chat/qna/dynamic" replace />} />
+                <Route path="/chat/activity/*" element={<Navigate to="/chat/qna/dynamic" replace />} />
+                <Route path="/chat/module-builder" element={<Navigate to="/chat/qna/dynamic" replace />} />
                 <Route
-                  path="/chat/activity/*"
-                  element={
-                    <ProtectedRoute>
-                      <ActivityChatRoutes />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Microfrontend: Module Builder Chat Module */}
-                <Route
-                  path="/chat/module-builder/*"
+                  path="/chat/module-builder/view"
                   element={
                     <ProtectedRoute>
                       <ModuleChatRoutes />
@@ -84,8 +78,8 @@ function App() {
                   }
                 />
 
-                {/* Root paths /chat redirects to default QnA */}
-                <Route path="/chat" element={<Navigate to="/chat/qna" replace />} />
+                {/* Root paths /chat redirects to default Dynamic selection */}
+                <Route path="/chat" element={<Navigate to="/chat/dynamic" replace />} />
 
                 {/* Redirect legacy direct links to MFE routes */}
                 <Route path="/alm" element={<Navigate to="/chat/qna/alm" replace />} />

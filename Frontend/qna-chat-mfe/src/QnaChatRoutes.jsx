@@ -6,6 +6,7 @@ export default function QnaChatRoutes() {
   return (
     <Routes>
       <Route index element={<ChatInterface mode="expert_teacher" />} />
+      <Route path="dynamic" element={<ChatInterface mode="general" />} />
       <Route path="alm" element={<ActiveListeningMode />} />
       <Route path="*" element={<Navigate to="" replace />} />
     </Routes>

@@ -3,16 +3,15 @@ Chat session and message models for MongoDB using Beanie.
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from beanie import Document, Indexed
+from models.base import PostgresDocument
 from pydantic import Field
-from bson import ObjectId
 
 
-class ChatMessage(Document):
+class ChatMessage(PostgresDocument):
     """Individual chat message model."""
     
-    session_id: Indexed(str)  # type: ignore
-    user_id: Indexed(str)  # type: ignore
+    session_id: str
+    user_id: str
     role: str = Field(..., description="Message role: 'user' or 'assistant'")
     content: str = Field(..., description="Message content/text")
     tool_used: Optional[str] = Field(None, description="Tool used to generate response (for assistant messages)")
@@ -28,11 +27,11 @@ class ChatMessage(Document):
         ]
 
 
-class ChatSession(Document):
+class ChatSession(PostgresDocument):
     """Chat session model for organizing conversations."""
     
-    session_id: Indexed(str, unique=True)  # type: ignore
-    user_id: Indexed(str)  # type: ignore
+    session_id: str
+    user_id: str
     ragflow_session_id: Optional[str] = Field(None, description="Associated RAGFlow session identifier")
     ragflow_context: Optional[Dict[str, Any]] = Field(default=None, description="Context used when creating the RAGFlow session")
     title: str = Field(default="New Chat", description="Session title (first message preview)")

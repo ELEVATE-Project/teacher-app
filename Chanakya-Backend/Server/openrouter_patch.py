@@ -117,8 +117,9 @@ def make_openrouter_call(model: str, contents, config: GenerateContentConfig) ->
                 messages[-1]["content"] += schema_instructions
  
     # 3. Headers
+    active_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY") or OPENROUTER_API_KEY
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {active_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://github.com/Kautilya03/teacher-app",
         "X-Title": "Chanakya Teacher App",

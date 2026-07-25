@@ -4,11 +4,11 @@ Converted from SQLAlchemy model in feedback_system/backend/database.py
 """
 from datetime import datetime
 from typing import Optional, Dict, Any
-from beanie import Document, Indexed
+from models.base import PostgresDocument
 from pydantic import Field
 
 
-class ClassReflection(Document):
+class ClassReflection(PostgresDocument):
     """
     Stores post-class reflection sessions with AI-generated feedback.
     Used for analyzing teaching transcripts and providing improvement suggestions.
