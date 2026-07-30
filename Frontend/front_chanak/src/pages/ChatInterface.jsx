@@ -726,7 +726,7 @@ function ChatInterface({ mode }) {
   }, [isRecording]);
 
   return (
-    <div className="flex-1 w-full min-h-0 bg-[#FFFFFF] flex flex-col relative overflow-hidden">
+    <div className="absolute inset-0 w-full bg-[#FFFFFF] flex flex-col overflow-hidden">
       {/* Background Image with very low opacity */}
       <div
         className="absolute inset-0 pointer-events-none"
