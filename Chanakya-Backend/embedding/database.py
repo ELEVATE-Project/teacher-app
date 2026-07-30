@@ -31,7 +31,7 @@ class Database:
     
     def _connect(self):
         """Establish database connection"""
-        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
         try:
             self.conn = psycopg2.connect(self.dsn)
             logger.info("Connected to PostgreSQL database")
@@ -359,26 +359,32 @@ class Database:
     ) -> int:
         """Insert a single page result from the PDF compiler."""
         cursor = self.conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO pdf_page_results (document_id, page_number, result_json, confidence_flags, pipeline_type, image_ref)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING id
-            """,
-            (
-                document_id,
-                page_number,
-                json.dumps(result_json),
-                json.dumps(confidence_flags) if confidence_flags else None,
-                pipeline_type,
-                image_ref,
-            ),
-        )
-        row = cursor.fetchone()
-        self.conn.commit()
-        last_id = row[0] if row else None
-        cursor.close()
-        return last_id
+        try:
+            cursor.execute(
+                """
+                INSERT INTO pdf_page_results (document_id, page_number, result_json, confidence_flags, pipeline_type, image_ref)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    document_id,
+                    page_number,
+                    json.dumps(result_json),
+                    json.dumps(confidence_flags) if confidence_flags else None,
+                    pipeline_type,
+                    image_ref,
+                ),
+            )
+            row = cursor.fetchone()
+            self.conn.commit()
+            last_id = row[0] if row else None
+            return last_id
+        except Exception as e:
+            logger.error(f"Error inserting PDF page result: {e}")
+            self.conn.rollback()
+            raise
+        finally:
+            cursor.close()
 
     def get_pdf_page_results(self, document_id: str) -> List[Dict[str, Any]]:
         """Get all page results for a document, ordered by page_number."""
@@ -414,19 +420,25 @@ class Database:
     ) -> int:
         """Insert a section consolidation result."""
         cursor = self.conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO pdf_section_results (document_id, section_index, page_start, page_end, result_json)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id
-            """,
-            (document_id, section_index, page_start, page_end, json.dumps(result_json)),
-        )
-        row = cursor.fetchone()
-        self.conn.commit()
-        last_id = row[0] if row else None
-        cursor.close()
-        return last_id
+        try:
+            cursor.execute(
+                """
+                INSERT INTO pdf_section_results (document_id, section_index, page_start, page_end, result_json)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (document_id, section_index, page_start, page_end, json.dumps(result_json)),
+            )
+            row = cursor.fetchone()
+            self.conn.commit()
+            last_id = row[0] if row else None
+            return last_id
+        except Exception as e:
+            logger.error(f"Error inserting PDF section result: {e}")
+            self.conn.rollback()
+            raise
+        finally:
+            cursor.close()
 
     def get_pdf_section_results(self, document_id: str) -> List[Dict[str, Any]]:
         """Get all section results for a document, ordered by section_index."""
@@ -491,11 +503,17 @@ class Database:
     def delete_pdf_document_results(self, document_id: str) -> None:
         """Delete all page and section results for a document (e.g. on recompile)."""
         cursor = self.conn.cursor()
-        cursor.execute("DELETE FROM pdf_page_results WHERE document_id = %s", (document_id,))
-        cursor.execute("DELETE FROM pdf_section_results WHERE document_id = %s", (document_id,))
-        self.conn.commit()
-        cursor.close()
-        logger.info("Deleted PDF results for document_id=%s", document_id)
+        try:
+            cursor.execute("DELETE FROM pdf_page_results WHERE document_id = %s", (document_id,))
+            cursor.execute("DELETE FROM pdf_section_results WHERE document_id = %s", (document_id,))
+            self.conn.commit()
+            logger.info("Deleted PDF results for document_id=%s", document_id)
+        except Exception as e:
+            logger.error(f"Error deleting PDF document results: {e}")
+            self.conn.rollback()
+            raise
+        finally:
+            cursor.close()
     
     def close(self):
         """Close database connection"""

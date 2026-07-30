@@ -4,7 +4,7 @@ This directory contains the frontend application for **Chanakya**, the real-time
 
 ## Directory Structure
 
-* **[front_chanak](file:///c:/Users/kauti/OneDrive/Desktop/Hackathon%20Projects/final-repo/teacher-app/Frontend/front_chanak/)**: The React + Vite application directory.
+* **[front_chanak](./front_chanak/)**: The React + Vite application directory.
   * Contains the codebase built with React 19, Tailwind CSS, Lucide Icons, and Framer Motion.
   * Integration with Sarvam AI API for Speech-to-Text and Text-to-Speech in regional Indian languages.
 
@@ -19,4 +19,4 @@ cd front_chanak
 * For automated setup, run:
   * **Windows:** `setup.bat`
   * **macOS/Linux:** `chmod +x setup.sh && ./setup.sh`
-* Refer to the **[front_chanak/README.md](file:///c:/Users/kauti/OneDrive/Desktop/Hackathon%20Projects/final-repo/teacher-app/Frontend/front_chanak/README.md)** for detailed documentation on manual installation, running, building, environment configuration, and project architecture.
+* Refer to the **[front_chanak/README.md](./front_chanak/README.md)** for detailed documentation on manual installation, running, building, environment configuration, and project architecture.

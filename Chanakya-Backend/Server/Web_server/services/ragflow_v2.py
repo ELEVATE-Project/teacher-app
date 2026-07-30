@@ -700,7 +700,7 @@ class RAGFlowClientV2:
             return None
 
     def chat_completion_stateful(
-        self, question: str, chat_id: str = "", session_id: Optional[str] = None
+        self, question: str, chat_id: str = "", session_id: Optional[str] = None, filters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Send a question to RAGFlow's stateful chat completions endpoint."""
         try:
@@ -711,6 +711,8 @@ class RAGFlowClientV2:
             }
             if session_id:
                 payload["session_id"] = session_id
+            if filters:
+                payload["filters"] = filters
                 
             resp = self.session.post(
                 self._url(f"/api/v1/chats/{cid}/completions"),

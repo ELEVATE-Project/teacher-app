@@ -175,12 +175,13 @@ class ContentExplainerTool(BaseTool):
                 raise Exception("Failed to get or create RAGFlow chat session")
  
             # 3. Call RAGFlow stateful completions
-            logger.info(f"Querying RAGFlow Chat Assistant for: '{query}' with session: {ragflow_session_id} and chat ID: {content_chat_id}")
+            logger.info(f"Querying RAGFlow Chat Assistant for: '{query}' with session: {ragflow_session_id} and chat ID: {content_chat_id} and filters: {filters}")
             resp = await asyncio.to_thread(
                 ragflow_service.chat_completion_stateful,
                 question=query,
                 chat_id=content_chat_id,
-                session_id=ragflow_session_id
+                session_id=ragflow_session_id,
+                filters=filters
             )
             
             # 4. Parse RAGFlow response

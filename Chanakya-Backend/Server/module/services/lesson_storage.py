@@ -33,7 +33,7 @@ class LessonStorageService:
         Args:
             db_path: Path parameter (ignored, kept for backward compatibility).
         """
-        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
         self._pool = None
         self._initialized = False
         
@@ -68,6 +68,11 @@ class LessonStorageService:
                     slides_json TEXT NOT NULL,
                     ragflow_session_id TEXT
                 )
+            """)
+            
+            # Idempotent ALTER TABLE migration to ensure ragflow_session_id exists on existing tables
+            await conn.execute("""
+                ALTER TABLE lessons ADD COLUMN IF NOT EXISTS ragflow_session_id TEXT
             """)
             
             # Create assignments table
@@ -206,6 +211,7 @@ class LessonStorageService:
         
         # Generate ID if not present
         lesson_id = lesson.id or str(uuid.uuid4())
+        lesson.id = lesson_id
         
         # Serialize slides to JSON
         slides_json = json.dumps([self._serialize_slide(s) for s in lesson.slides])
@@ -214,62 +220,64 @@ class LessonStorageService:
         created_at = lesson.created_at.isoformat()
         
         async with self._pool.acquire() as conn:
-            # Insert or update lesson
-            await conn.execute("""
-                INSERT INTO lessons 
-                (id, class_name, subject, topic, teacher_id, validation_score, created_at, slides_json, ragflow_session_id)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT (id) DO UPDATE SET
-                    class_name = EXCLUDED.class_name,
-                    subject = EXCLUDED.subject,
-                    topic = EXCLUDED.topic,
-                    teacher_id = EXCLUDED.teacher_id,
-                    validation_score = EXCLUDED.validation_score,
-                    created_at = EXCLUDED.created_at,
-                    slides_json = EXCLUDED.slides_json,
-                    ragflow_session_id = EXCLUDED.ragflow_session_id
-            """, 
-                lesson_id,
-                lesson.class_name,
-                lesson.subject,
-                lesson.topic,
-                lesson.teacher_id,
-                lesson.validation_score,
-                created_at,
-                slides_json,
-                lesson.ragflow_session_id
-            )
-            
-            # Save assignment if provided
-            if assignment:
-                assignment_id = assignment.id or str(uuid.uuid4())
-                questions_json = json.dumps([
-                    self._serialize_question(q) for q in assignment.questions
-                ])
-                assignment_created_at = assignment.created_at.isoformat()
-                
+            async with conn.transaction():
+                # Insert or update lesson
                 await conn.execute("""
-                    INSERT INTO assignments
-                    (id, lesson_id, class_name, subject, topic, total_marks, created_at, questions_json)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    INSERT INTO lessons 
+                    (id, class_name, subject, topic, teacher_id, validation_score, created_at, slides_json, ragflow_session_id)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                     ON CONFLICT (id) DO UPDATE SET
-                        lesson_id = EXCLUDED.lesson_id,
                         class_name = EXCLUDED.class_name,
                         subject = EXCLUDED.subject,
                         topic = EXCLUDED.topic,
-                        total_marks = EXCLUDED.total_marks,
+                        teacher_id = EXCLUDED.teacher_id,
+                        validation_score = EXCLUDED.validation_score,
                         created_at = EXCLUDED.created_at,
-                        questions_json = EXCLUDED.questions_json
+                        slides_json = EXCLUDED.slides_json,
+                        ragflow_session_id = EXCLUDED.ragflow_session_id
                 """, 
-                    assignment_id,
                     lesson_id,
-                    assignment.class_name,
-                    assignment.subject,
-                    assignment.topic,
-                    assignment.total_marks,
-                    assignment_created_at,
-                    questions_json
+                    lesson.class_name,
+                    lesson.subject,
+                    lesson.topic,
+                    lesson.teacher_id,
+                    lesson.validation_score,
+                    created_at,
+                    slides_json,
+                    lesson.ragflow_session_id
                 )
+                
+                # Save assignment if provided
+                if assignment:
+                    assignment_id = assignment.id or str(uuid.uuid4())
+                    assignment.id = assignment_id
+                    questions_json = json.dumps([
+                        self._serialize_question(q) for q in assignment.questions
+                    ])
+                    assignment_created_at = assignment.created_at.isoformat()
+                    
+                    await conn.execute("""
+                        INSERT INTO assignments
+                        (id, lesson_id, class_name, subject, topic, total_marks, created_at, questions_json)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                        ON CONFLICT (id) DO UPDATE SET
+                            lesson_id = EXCLUDED.lesson_id,
+                            class_name = EXCLUDED.class_name,
+                            subject = EXCLUDED.subject,
+                            topic = EXCLUDED.topic,
+                            total_marks = EXCLUDED.total_marks,
+                            created_at = EXCLUDED.created_at,
+                            questions_json = EXCLUDED.questions_json
+                    """, 
+                        assignment_id,
+                        lesson_id,
+                        assignment.class_name,
+                        assignment.subject,
+                        assignment.topic,
+                        assignment.total_marks,
+                        assignment_created_at,
+                        questions_json
+                    )
             
             logger.info(f"Saved lesson {lesson_id}")
             

@@ -22,7 +22,7 @@ class FeedbackStorage:
     
     def __init__(self, db_path: Optional[str] = None):
         """Initialize storage with DSN."""
-        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
         self._initialize_db()
     
     def _get_connection(self):
@@ -33,39 +33,41 @@ class FeedbackStorage:
     def _initialize_db(self):
         """Create database tables if they don't exist."""
         conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        # Feedback table - stores only feedback, NOT transcripts
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS teaching_feedback (
-                session_id TEXT PRIMARY KEY,
-                teacher_id TEXT,
-                topic TEXT NOT NULL,
-                grade_level TEXT NOT NULL,
-                duration_minutes INTEGER,
-                language TEXT,
-                timestamp TEXT NOT NULL,
-                overall_score REAL NOT NULL,
-                concept_coverage TEXT NOT NULL,
-                clarity TEXT NOT NULL,
-                engagement TEXT NOT NULL,
-                rural_context TEXT NOT NULL,
-                key_strengths TEXT NOT NULL,
-                improvement_areas TEXT NOT NULL,
-                actionable_tips TEXT NOT NULL,
-                misconceptions_addressed TEXT NOT NULL,
-                misconceptions_missed TEXT NOT NULL
-            )
-        """)
-        
-        # Index for teacher queries
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_teacher_timestamp 
-            ON teaching_feedback(teacher_id, timestamp DESC)
-        """)
-        
-        conn.commit()
-        conn.close()
+        try:
+            cursor = conn.cursor()
+            
+            # Feedback table - stores only feedback, NOT transcripts
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS teaching_feedback (
+                    session_id TEXT PRIMARY KEY,
+                    teacher_id TEXT,
+                    topic TEXT NOT NULL,
+                    grade_level TEXT NOT NULL,
+                    duration_minutes INTEGER,
+                    language TEXT,
+                    timestamp TEXT NOT NULL,
+                    overall_score REAL NOT NULL,
+                    concept_coverage TEXT NOT NULL,
+                    clarity TEXT NOT NULL,
+                    engagement TEXT NOT NULL,
+                    rural_context TEXT NOT NULL,
+                    key_strengths TEXT NOT NULL,
+                    improvement_areas TEXT NOT NULL,
+                    actionable_tips TEXT NOT NULL,
+                    misconceptions_addressed TEXT NOT NULL,
+                    misconceptions_missed TEXT NOT NULL
+                )
+            """)
+            
+            # Index for teacher queries
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_teacher_timestamp 
+                ON teaching_feedback(teacher_id, timestamp DESC)
+            """)
+            
+            conn.commit()
+        finally:
+            conn.close()
     
     def save_feedback(self, feedback: TeachingFeedback, teacher_id: Optional[str] = None) -> bool:
         """
@@ -78,6 +80,7 @@ class FeedbackStorage:
         Returns:
             True if saved successfully
         """
+        conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
@@ -127,12 +130,14 @@ class FeedbackStorage:
             ))
             
             conn.commit()
-            conn.close()
             return True
             
         except Exception as e:
             print(f"Error saving feedback: {e}")
             return False
+        finally:
+            if conn:
+                conn.close()
     
     def get_feedback(self, session_id: str) -> Optional[TeachingFeedback]:
         """
@@ -144,6 +149,7 @@ class FeedbackStorage:
         Returns:
             TeachingFeedback object or None
         """
+        conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
@@ -153,8 +159,6 @@ class FeedbackStorage:
             """, (session_id,))
             
             row = cursor.fetchone()
-            conn.close()
-            
             if not row:
                 return None
             
@@ -163,6 +167,9 @@ class FeedbackStorage:
         except Exception as e:
             print(f"Error retrieving feedback: {e}")
             return None
+        finally:
+            if conn:
+                conn.close()
     
     def get_teacher_history(self, teacher_id: str, limit: int = 5) -> FeedbackHistory:
         """
@@ -175,6 +182,7 @@ class FeedbackStorage:
         Returns:
             FeedbackHistory with statistics and recent sessions
         """
+        conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
@@ -187,7 +195,6 @@ class FeedbackStorage:
             """, (teacher_id,))
             
             rows = cursor.fetchall()
-            conn.close()
             
             if not rows:
                 return FeedbackHistory(
@@ -256,6 +263,9 @@ class FeedbackStorage:
                 common_strengths=[],
                 recurring_gaps=[]
             )
+        finally:
+            if conn:
+                conn.close()
     
     def _row_to_feedback(self, row) -> TeachingFeedback:
         """Convert database row to TeachingFeedback object."""
