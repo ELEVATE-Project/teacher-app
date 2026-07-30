@@ -29,7 +29,7 @@ class TopicSelectorService:
             db_path: Path parameter (ignored, kept for backward compatibility).
         """
         self.use_mock = False
-        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
         self._pool = None
         self._initialized = False
         
@@ -45,6 +45,21 @@ class TopicSelectorService:
         try:
             conn = psycopg2.connect(self.dsn)
             cursor = conn.cursor()
+            
+            # Create documents table and index if they don't exist
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS documents (
+                    id SERIAL PRIMARY KEY,
+                    content TEXT NOT NULL,
+                    embedding BYTEA NOT NULL,
+                    source TEXT NOT NULL
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_source ON documents(source)
+            """)
+            conn.commit()
+            
             cursor.execute("SELECT COUNT(*) FROM documents")
             count = cursor.fetchone()[0]
             conn.close()

@@ -12,12 +12,15 @@ load_dotenv(find_dotenv())
 class Settings:
     """Application settings."""
     
-    # MongoDB Configuration
-    MONGODB_URL: str = os.getenv(
-        "MONGODB_URL", 
-        "mongodb+srv://kautilyasrivastava07:4V16P4rd7cBDrbaF@cluster0.5leoy.mongodb.net/Chanakya?retryWrites=true&w=majority"
+    # MongoDB Configuration (Deprecated)
+    MONGODB_URL: str = os.getenv("MONGODB_URL", "")
+    DATABASE_NAME: str = os.getenv("DATABASE_NAME", "")
+    
+    # Postgres Configuration
+    POSTGRES_URL: str = os.getenv(
+        "DB_URL", 
+        "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
     )
-    DATABASE_NAME: str = os.getenv("DATABASE_NAME", "Chanakya")
     
     # JWT Configuration
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")

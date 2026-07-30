@@ -31,7 +31,7 @@ class Database:
     
     def _connect(self):
         """Establish database connection"""
-        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:securepass123@localhost:5432/Shikshalokam"
+        self.dsn = os.getenv("DB_URL") or "postgresql://teacher_user:superuser@localhost:5432/Shikshalokam"
         try:
             self.conn = psycopg2.connect(self.dsn)
             logger.info("Connected to PostgreSQL database")

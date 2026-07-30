@@ -107,22 +107,28 @@ class APITester:
         
         # Generate unique test user
         timestamp = int(time.time())
-        test_user = {
-            "username": f"testuser_{timestamp}",
-            "email": f"test_{timestamp}@example.com",
-            "password": "TestPass123!",
-            "full_name": "Test User",
-            "role": "teacher"
+        email = f"test_{timestamp}@example.com"
+        password = "TestPass123!"
+        
+        signup_payload = {
+            "name": "Test User",
+            "email": email,
+            "password": password,
+            "confirmPassword": password,
+            "classesHandled": ["Class 6"],
+            "subjects": ["Mathematics"],
+            "schoolLocation": "Delhi",
+            "preferredLanguage": ["English"]
         }
         
         try:
             # Test Registration
-            self.print_info(f"POST {self.api_url}/auth/register")
-            self.print_json({"username": test_user["username"], "email": test_user["email"]})
+            self.print_info(f"POST {self.api_url}/auth/signup")
+            self.print_json({"name": signup_payload["name"], "email": signup_payload["email"]})
             
             response = requests.post(
-                f"{self.api_url}/auth/register",
-                json=test_user,
+                f"{self.api_url}/auth/signup",
+                json=signup_payload,
                 timeout=10
             )
             
@@ -137,25 +143,23 @@ class APITester:
             time.sleep(1)  # Small delay between requests
             self.print_info(f"\nPOST {self.api_url}/auth/login")
             
-            login_data = {
-                "username": test_user["email"],
-                "password": test_user["password"]
+            login_payload = {
+                "email": email,
+                "password": password
             }
             
             response = requests.post(
                 f"{self.api_url}/auth/login",
-                data=login_data,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                json=login_payload,
                 timeout=10
             )
             
             if response.status_code == 200:
                 data = response.json()
-                self.token = data.get("access_token")
+                self.token = data.get("token")
                 self.print_success("Login successful")
                 self.print_json({
-                    "access_token": self.token[:50] + "...",
-                    "token_type": data.get("token_type"),
+                    "token": self.token[:50] + "..." if self.token else "None",
                     "user": data.get("user")
                 })
                 self.record_test(True)

@@ -94,177 +94,34 @@ class OrchestratorState(TypedDict):
 
 ROUTER_PROMPT = """You are Chanakya's intelligent router for a classroom support system.
 
-Your job is to understand the teacher's query and decide which tool to use.
+Your job is to understand the teacher's query and decide which tool to use. You must select ONLY from the three available tools.
 
 AVAILABLE TOOLS:
-1. "general_conversation" - **[USE FOR NON-EDUCATIONAL QUERIES]** Use for:
+1. "expert_teacher" - **[DEFAULT FOR GENERAL QUESTIONS, CONCEPT EXPLANATIONS, AND CONVERSATION]** Use for:
    - Greetings (hi, hello, good morning, namaste)
    - Gratitude (thank you, thanks, appreciate it)
-   - Unclear/ambiguous queries that need clarification (only when genuinely unclear)
-   - Out-of-scope questions (weather, news, personal matters, non-teaching topics)
-   - Small talk or casual conversation
-   When the query is NOT about teaching, education, or classroom matters, use this tool.
+   - Small talk, casual conversation, out-of-scope or general queries
+   - Any general knowledge, educational questions, calculations, facts, definitions, or general teaching questions
+   - Concept explanations that are NOT specifically asking for textbook/NCERT content.
+   **When in doubt or when queries do not specifically mention NCERT/textbooks or ask for activities, use this tool.**
 
-2. "expert_teacher" - **[DEFAULT FOR EDUCATIONAL AND KNOWLEDGE QUERIES]** Use for:
-   - ANY educational question, concept explanation, or teaching query
-   - General knowledge questions (who is X, what is Y, explain Z)
-   - Historical figures, scientists, political leaders, inventors
-   - Science concepts, math concepts, geography, history
-   - Current affairs related to education or knowledge
-   - Definitions that need detailed explanation
-   - Simple calculations and quick facts
-   This is a knowledgeable expert teacher with broad subject knowledge that can answer both curriculum and non-curriculum topics. **When in doubt about any knowledge-based content, use this tool.**
+2. "content_explainer" - Use ONLY when the teacher specifically mentions NCERT or asks for school textbook-based content/lessons (e.g. "Explain NCERT Chapter 5").
 
-3. "content_explainer" - Use ONLY when the teacher specifically mentions NCERT or specifically asks for textbook-based answers. This retrieves information from NCERT textbooks. If uncertain whether content is in NCERT, prefer expert_teacher instead.
-
-4. "activity_generator" - Use when the teacher explicitly wants a hands-on activity, demonstration, or interactive exercise. Must include words like "activity", "game", "demonstration", "exercise".
-
-5. "crisis_handler" - Use when there is an IMMEDIATE classroom management crisis: students making noise, losing focus, being disruptive, chaos, behavior problems. This tool provides instant solutions (under 2 minutes) to restore order and attention.
-
-6. "teacher_motivation" - Use when the teacher is expressing feelings of burnout, stress, exhaustion, lack of motivation, feeling overwhelmed, or needing emotional support. This tool provides motivation, tips, and recovery strategies for teacher wellbeing.
-
-7. "classroom_guidance" - Use when the teacher describes PEDAGOGICAL challenges, student learning difficulties, teaching strategy questions, or needs practical tips for daily classroom situations. Examples: "students can't interpret graphs", "only few students participate", "how to make lessons interactive", "students memorize but don't understand".
-
-8. "feedback_response" - **[USE FOR TEACHER FEEDBACK]** Use when the teacher provides feedback about an activity, lesson, or teaching approach they tried. Examples:
-   - "the activity was not good"
-   - "students didn't like the activity"
-   - "that worked great!"
-   - "the lesson was confusing"
-   - "students loved it"
-   Keywords: "activity was", "lesson was", "students didn't like", "didn't work", "worked well", "loved it", "hated it", "not good", "feedback about"
-   This tool responds to feedback and stores context for analysis.
-
-9. "resource_finder" - **[USE ONLY WHEN EXPLICITLY REQUESTED]** Use ONLY when the teacher EXPLICITLY asks for:
-   - YouTube videos or video tutorials (must contain words: "video", "youtube")
-   - Web links or articles (must contain words: "link", "article", "website")
-   - Additional resources or materials (must contain words: "resources", "materials", "find me")
-   - Lesson plans or teaching materials
-   - PDFs or downloadable content
-   **CRITICAL**: Do NOT use this tool for general questions or explanations. Only use when the query explicitly requests external resources, links, videos, or articles.
-   Keywords that MUST be present: "videos", "youtube", "links", "link", "resources", "materials", "pdf", "articles", "find me", "give me links", "show me videos"
-   This tool searches the web using Tavily API and returns curated educational resources.
-
-FUTURE TOOLS (not yet available, do NOT select these):
-- "assessment_creator" - For creating quizzes/tests
+3. "activity_generator" - Use when the teacher explicitly wants a hands-on activity, game, plan, demonstration, or interactive exercise. Must contain keywords or intent for "activity", "game", "demonstration", "exercise".
 
 ANALYZE THE QUERY AND RESPOND WITH JSON:
 {
-    "selected_tool": "general_conversation" or "expert_teacher" or "content_explainer" or "activity_generator" or "crisis_handler" or "teacher_motivation" or "classroom_guidance" or "feedback_response" or "resource_finder",
+    "selected_tool": "expert_teacher" or "content_explainer" or "activity_generator",
     "reasoning": "Brief explanation of why this tool was selected",
-    "extracted_topic": "The main topic/concept OR crisis situation OR motivation issue OR teaching challenge OR feedback content OR conversation type",
-    "confidence": 0.95,
-    "needs_resources": true or false
+    "extracted_topic": "The main topic or concept or query intent",
+    "confidence": 0.95
 }
-
-Note: Set "needs_resources": true if the query ALSO asks for videos, links, or resources in addition to the main query. This will trigger resource_finder as a secondary tool.
-
-EXAMPLES:
-
-Query: "Hi"
-Response: {"selected_tool": "general_conversation", "reasoning": "Simple greeting - needs friendly response", "extracted_topic": "greeting", "confidence": 0.99, "needs_resources": false}
-
-Query: "Thank you so much!"
-Response: {"selected_tool": "general_conversation", "reasoning": "Expression of gratitude", "extracted_topic": "gratitude", "confidence": 0.99}
-
-Query: "What's the weather like today?"
-Response: {"selected_tool": "general_conversation", "reasoning": "Out of scope - not related to teaching or education", "extracted_topic": "out_of_scope", "confidence": 0.98}
-
-Query: "I need help"
-Response: {"selected_tool": "general_conversation", "reasoning": "Unclear query - needs clarification on what kind of help", "extracted_topic": "clarification_needed", "confidence": 0.95}
-
-Query: "What is photosynthesis?"
-Response: {"selected_tool": "expert_teacher", "reasoning": "General educational question - expert teacher can provide comprehensive answer", "extracted_topic": "photosynthesis", "confidence": 0.97}
-
-Query: "who is narendra modi"
-Response: {"selected_tool": "expert_teacher", "reasoning": "General knowledge question about a person - expert teacher handles GK queries", "extracted_topic": "narendra modi", "confidence": 0.98}
-
-Query: "who discovered gravity"
-Response: {"selected_tool": "expert_teacher", "reasoning": "General knowledge question about historical figure and scientific discovery", "extracted_topic": "gravity discovery", "confidence": 0.97}
-
-Query: "what is the capital of France"
-Response: {"selected_tool": "expert_teacher", "reasoning": "General knowledge geography question", "extracted_topic": "capital of France", "confidence": 0.98}
-
-Query: "Explain Pythagoras theorem to me"
-Response: {"selected_tool": "expert_teacher", "reasoning": "Concept explanation request - expert teacher is best for clear explanations", "extracted_topic": "Pythagoras theorem", "confidence": 0.98}
-
-Query: "What is quantum mechanics?"
-Response: {"selected_tool": "expert_teacher", "reasoning": "Educational question requiring expert knowledge", "extracted_topic": "quantum mechanics", "confidence": 0.95}
-
-Query: "Explain NCERT Chapter 5 on photosynthesis"
-Response: {"selected_tool": "content_explainer", "reasoning": "Teacher specifically asked for NCERT textbook content", "extracted_topic": "photosynthesis", "confidence": 0.98}
-
-Query: "Give me an activity for teaching addition with carry"
-Response: {"selected_tool": "activity_generator", "reasoning": "Teacher explicitly asked for an activity", "extracted_topic": "addition with carry", "confidence": 0.98}
-
-Query: "How can I teach fractions in a fun way?"
-Response: {"selected_tool": "activity_generator", "reasoning": "Teacher wants an engaging activity method to teach", "extracted_topic": "fractions", "confidence": 0.95}
-
-Query: "Students are making too much noise and not listening"
-Response: {"selected_tool": "crisis_handler", "reasoning": "Immediate classroom management crisis - noise and attention problem", "extracted_topic": "noise control", "confidence": 0.98}
-
-Query: "My class is completely out of control, everyone is talking"
-Response: {"selected_tool": "crisis_handler", "reasoning": "Crisis situation - chaos and lack of control", "extracted_topic": "classroom chaos", "confidence": 0.97}
-
-Query: "I'm feeling burnt out and don't want to teach anymore"
-Response: {"selected_tool": "teacher_motivation", "reasoning": "Teacher expressing burnout and loss of motivation - needs emotional support", "extracted_topic": "burnout and exhaustion", "confidence": 0.97}
-
-Query: "I feel like I'm failing as a teacher, nothing is working"
-Response: {"selected_tool": "teacher_motivation", "reasoning": "Teacher expressing self-doubt and stress - needs encouragement", "extracted_topic": "self-doubt and discouragement", "confidence": 0.96, "needs_resources": false}
-
-Query: "Students are unable to interpret maps and graphs systematically"
-Response: {"selected_tool": "classroom_guidance", "reasoning": "Teacher describing a pedagogical challenge about student learning skills", "extracted_topic": "interpreting visual data", "confidence": 0.96, "needs_resources": false}
-
-Query: "Only 2-3 students answer questions in class"
-Response: {"selected_tool": "classroom_guidance", "reasoning": "Teacher describing student engagement issue needing teaching strategies", "extracted_topic": "low participation", "confidence": 0.97, "needs_resources": false}
-
-Query: "How can I make my lessons more interactive?"
-Response: {"selected_tool": "classroom_guidance", "reasoning": "Teacher asking for teaching strategy advice", "extracted_topic": "interactive teaching methods", "confidence": 0.95, "needs_resources": false}
-
-Query: "The activity was not good"
-Response: {"selected_tool": "feedback_response", "reasoning": "Teacher providing negative feedback about an activity", "extracted_topic": "activity feedback", "confidence": 0.98, "needs_resources": false}
-
-Query: "Students didn't like the hands-on activity"
-Response: {"selected_tool": "feedback_response", "reasoning": "Teacher giving feedback that students didn't like an activity", "extracted_topic": "activity feedback", "confidence": 0.97, "needs_resources": false}
-
-Query: "That lesson worked great!"
-Response: {"selected_tool": "feedback_response", "reasoning": "Teacher providing positive feedback about a lesson", "extracted_topic": "lesson feedback", "confidence": 0.98, "needs_resources": false}
-
-Query: "The demonstration was confusing for students"
-Response: {"selected_tool": "feedback_response", "reasoning": "Teacher providing feedback that demonstration was confusing", "extracted_topic": "demonstration feedback", "confidence": 0.96, "needs_resources": false}
-
-Query: "Give me YouTube videos about photosynthesis"
-Response: {"selected_tool": "resource_finder", "reasoning": "Teacher explicitly asking for YouTube videos on a topic", "extracted_topic": "photosynthesis", "confidence": 0.98, "needs_resources": true}
-
-Query: "Find me resources and lesson plans for teaching fractions"
-Response: {"selected_tool": "resource_finder", "reasoning": "Teacher asking for resources and lesson plan materials", "extracted_topic": "teaching fractions", "confidence": 0.97, "needs_resources": true}
-
-Query: "Show me links and articles about water cycle"
-Response: {"selected_tool": "resource_finder", "reasoning": "Teacher explicitly requesting links and articles", "extracted_topic": "water cycle", "confidence": 0.98, "needs_resources": true}
-
-Query: "Explain photosynthesis and give me some videos and links"
-Response: {"selected_tool": "expert_teacher", "reasoning": "Educational explanation needed, PLUS resources requested", "extracted_topic": "photosynthesis", "confidence": 0.95, "needs_resources": true}
-
-Query: "What is gravity? Also share some YouTube tutorials"
-Response: {"selected_tool": "expert_teacher", "reasoning": "Knowledge question that needs explanation, plus video resources requested", "extracted_topic": "gravity", "confidence": 0.96, "needs_resources": true}
-
-Query: "Explain photosynthesis"
-Response: {"selected_tool": "expert_teacher", "reasoning": "General explanation request - no resources explicitly requested", "extracted_topic": "photosynthesis", "confidence": 0.98, "needs_resources": false}
 
 RULES:
 - Return ONLY valid JSON
-- **FIRST check if query is a greeting, gratitude, or truly unclear → use "general_conversation"**
-- **DEFAULT to "expert_teacher" for ANY educational content or knowledge question (including GK, calculations, facts)**
-- **Questions like "who is X", "what is Y", "explain Z", "2+2" → ALWAYS use "expert_teacher" NOT general_conversation**
-- Use "content_explainer" ONLY when NCERT is specifically mentioned
-- Use "activity_generator" ONLY when explicitly asking for activities/games
-- Use "crisis_handler" for ANY immediate behavioral/attention crisis
-- Use "teacher_motivation" for burnout, stress, lack of motivation, feeling overwhelmed
-- Use "classroom_guidance" for pedagogical challenges, student learning difficulties, teaching strategies
-- **Use "resource_finder" ONLY when explicitly asking for videos/links/articles/resources with keywords like: "videos", "youtube", "links", "articles", "find me", "show me", "give me links"**
-- **Do NOT use "resource_finder" for general explanation requests - use "expert_teacher" instead**
-- Set "needs_resources": true when query asks for videos, links, resources, materials IN ADDITION to an explanation
-- Extract the topic/concept or crisis situation or motivation issue or teaching challenge or conversation type clearly
-- Set confidence based on how clearly the query matches the tool's purpose"""
+- Do NOT select any other tools. You must choose exactly one of: "expert_teacher", "content_explainer", "activity_generator".
+- Default to "expert_teacher" for general questions, greetings, gratitude, and general teaching support.
+- Extract the main topic/concept or query intent clearly."""
 
 
 # =============================================================================
@@ -814,37 +671,33 @@ Language:""")]
                 "intent": query,
                 "confidence": 1.0,
             }
-            
-        # Check if the query is a module/lesson plan request
+
+        # Check for keyword-based overrides
         query_lower = query.lower()
-        is_module_request = (
-            "generate module" in query_lower or
-            "create module" in query_lower or
-            "build module" in query_lower or
-            "module for chapter" in query_lower or
-            "lesson plan" in query_lower or
-            "slide plan" in query_lower or
-            "2 slide" in query_lower or
-            "create a module" in query_lower or
-            ("module" in query_lower and "chapter" in query_lower) or
-            ("lesson" in query_lower and "plan" in query_lower)
-        )
-        if is_module_request:
-            self.logger.info("module_request_detected", query=query)
+        if "module" in query_lower:
+            self.logger.info("keyword_routing_override", tool="module_builder", query=query)
             return {
                 "selected_tool": "module_builder",
-                "tool_reasoning": "Detected module or lesson plan request, routing to module_builder tool",
+                "tool_reasoning": "Keyword override: 'module' mentioned in query",
                 "intent": query,
                 "confidence": 1.0,
             }
-        
+        elif "activity" in query_lower:
+            self.logger.info("keyword_routing_override", tool="activity_generator", query=query)
+            return {
+                "selected_tool": "activity_generator",
+                "tool_reasoning": "Keyword override: 'activity' mentioned in query",
+                "intent": query,
+                "confidence": 1.0,
+            }
+            
         # Check if quick_answer_mode is enabled
         quick_answer_mode = context.get("quick_answer_mode", False)
         if quick_answer_mode:
             self.logger.info("quick_answer_mode_enabled", query=query)
             return {
-                "selected_tool": "quick_answer",
-                "tool_reasoning": "Quick Answer Mode enabled - forcing fast response",
+                "selected_tool": "expert_teacher",
+                "tool_reasoning": "Quick Answer Mode enabled - forcing expert_teacher response",
                 "intent": query,
                 "confidence": 1.0,
             }
@@ -881,7 +734,7 @@ Language:""")]
             if not text:
                 self.logger.warning("router_empty_response", query=query)
                 return {
-                    "selected_tool": "activity_generator",
+                    "selected_tool": "expert_teacher",
                     "tool_reasoning": "Default selection (empty router response)",
                     "intent": query,
                     "confidence": 0.5,
@@ -920,14 +773,14 @@ Language:""")]
                     response_text=text[:200]
                 )
                 return {
-                    "selected_tool": "activity_generator",
+                    "selected_tool": "expert_teacher",
                     "tool_reasoning": "Default selection (invalid JSON response)",
                     "intent": query,
                     "confidence": 0.5,
                 }
             
             return {
-                "selected_tool": parsed.get("selected_tool", "activity_generator"),
+                "selected_tool": parsed.get("selected_tool", "expert_teacher"),
                 "tool_reasoning": parsed.get("reasoning", "Default selection"),
                 "intent": parsed.get("extracted_topic", query),
                 "confidence": float(parsed.get("confidence", 0.8)),
@@ -936,9 +789,9 @@ Language:""")]
             }
             
         except Exception:
-            # Default to activity generator on error
+            # Default to expert_teacher on error
             return {
-                "selected_tool": "activity_generator",
+                "selected_tool": "expert_teacher",
                 "tool_reasoning": "Default selection (router error)",
                 "intent": query,
                 "confidence": 0.5,

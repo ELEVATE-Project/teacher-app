@@ -3,11 +3,11 @@ Discuss (forum) document models for MongoDB using Beanie.
 """
 from datetime import datetime
 from typing import List, Optional
-from beanie import Document
+from models.base import PostgresDocument
 from pydantic import Field
 
 
-class DiscussPost(Document):
+class DiscussPost(PostgresDocument):
     """Forum post: teacher question with optional location and upvotes."""
     author_id: str = Field(..., description="User ID of the author")
     body: str = Field(..., min_length=1, max_length=2000, description="Question text")
@@ -20,7 +20,7 @@ class DiscussPost(Document):
         name = "discuss_posts"
 
 
-class DiscussReply(Document):
+class DiscussReply(PostgresDocument):
     """Reply to a discuss post."""
     post_id: str = Field(..., description="ID of the DiscussPost")
     author_id: str = Field(..., description="User ID of the author")
