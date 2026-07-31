@@ -726,7 +726,7 @@ function ChatInterface({ mode }) {
   }, [isRecording]);
 
   return (
-    <div className="h-full min-h-0 bg-[#FFFFFF] flex flex-col relative overflow-hidden">
+    <div className="absolute inset-0 w-full bg-[#FFFFFF] flex flex-col overflow-hidden">
       {/* Background Image with very low opacity */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -902,7 +902,7 @@ function ChatInterface({ mode }) {
           </div>
 
           {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto px-4 py-8 min-h-0 max-h-[calc(100vh-200px)]">
+          <div className="flex-1 overflow-y-auto px-4 py-8 min-h-0">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full max-w-3xl mx-auto">
                 <div>
