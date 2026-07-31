@@ -243,29 +243,13 @@ function Landing() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="flex justify-center">
           <button
-            onClick={() => navigate("/chat/activity")}
-            className="flex flex-col items-center justify-center text-center bg-[#FEFCE8] border-4 border-[#000000] p-8 shadow-[8px_8px_0px_0px_#000000] hover:shadow-[4px_4px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all rounded-2xl h-64"
+            onClick={() => navigate("/chat/dynamic")}
+            className="flex flex-col items-center justify-center text-center bg-[#FDE047] border-4 border-[#000000] p-8 shadow-[8px_8px_0px_0px_#000000] hover:shadow-[4px_4px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all rounded-2xl h-64 min-w-[320px]"
           >
-            <span className="font-extrabold text-3xl mb-4 text-[#000000]">Activity</span>
-            <span className="text-[#000000] font-medium text-base">Generate engaging classroom activities instantly</span>
-          </button>
-          
-          <button
-            onClick={() => navigate("/chat/qna")}
-            className="flex flex-col items-center justify-center text-center bg-[#F0FDFA] border-4 border-[#000000] p-8 shadow-[8px_8px_0px_0px_#000000] hover:shadow-[4px_4px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all rounded-2xl h-64"
-          >
-            <span className="font-extrabold text-3xl mb-4 text-[#000000]">Q&A</span>
-            <span className="text-[#000000] font-medium text-base">Ask any question and get expert teacher guidance</span>
-          </button>
-          
-          <button
-            onClick={() => navigate("/chat/module-builder")}
-            className="flex flex-col items-center justify-center text-center bg-[#FAF5FF] border-4 border-[#000000] p-8 shadow-[8px_8px_0px_0px_#000000] hover:shadow-[4px_4px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all rounded-2xl h-64"
-          >
-            <span className="font-extrabold text-3xl mb-4 text-[#000000]">Module Builder</span>
-            <span className="text-[#000000] font-medium text-base">Create complete lesson modules and slides</span>
+            <span className="font-extrabold text-3xl mb-4 text-[#000000]">General Chat</span>
+            <span className="text-[#000000] font-medium text-base">Ask questions, generate activities, and build lesson plans</span>
           </button>
         </div>
       </div>

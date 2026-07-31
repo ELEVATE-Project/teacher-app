@@ -272,33 +272,13 @@ function Landing() {
       {/* Mode Selection Section - Only visible when logged in */}
       {isAuthenticated && (
         <section className="w-full bg-[#FCF4AC] border-2 border-[#000000] p-8 md:p-16 grid-texture">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <button
-                onClick={() => navigate("/module")}
-                className="bg-white border-2 border-[#000000] px-4 md:px-6 py-3 md:py-4 text-black font-bold text-sm md:text-base shadow-[4px_4px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all"
-              >
-                Create Modules
-              </button>
-              <button
-                onClick={() => navigate("/chat/dynamic")}
-                className="bg-white border-2 border-[#000000] px-4 md:px-6 py-3 md:py-4 text-black font-bold text-sm md:text-base shadow-[4px_4px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all"
-              >
-                Chat With Chanakya
-              </button>
-              <button
-                onClick={() => navigate("/alm")}
-                className="bg-white border-2 border-[#000000] px-4 md:px-6 py-3 md:py-4 text-black font-bold text-sm md:text-base shadow-[4px_4px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all"
-              >
-                Active Listening
-              </button>
-              <button
-                onClick={() => navigate("/personalized-support")}
-                className="bg-white border-2 border-[#000000] px-4 md:px-6 py-3 md:py-4 text-black font-bold text-sm md:text-base shadow-[4px_4px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all"
-              >
-                Personalized-Q/A Generator
-              </button>
-            </div>
+          <div className="max-w-7xl mx-auto flex justify-center">
+            <button
+              onClick={() => navigate("/chat/dynamic")}
+              className="bg-white border-2 border-[#000000] px-8 py-4 text-black font-bold text-base md:text-lg shadow-[4px_4px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] hover:translate-x-1 hover:translate-y-1 transition-all min-w-[250px] text-center"
+            >
+              General Chat
+            </button>
           </div>
         </section>
       )}
