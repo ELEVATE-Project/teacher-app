@@ -4,12 +4,8 @@ import {
   queryOrchestrator,
   getChatHistory,
   getSessionMessages,
-  analyzeImage,
-  captureFromCamera,
-  uploadPdf,
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { transcribeAudio, textToSpeechAndPlay } from "../utils/sarvamApi";
 import ResponseFormatter from "../components/ResponseFormatter";
 import Header from "../components/Header";
 import LessonPreview from "../components/module/LessonPreview";
@@ -40,32 +36,12 @@ function ChatInterface({ mode }) {
     const initial = getInitialMode();
     return initial;
   });
-  const attachInputRef = useRef(null);
-  const imageInputRef = attachInputRef; // alias for backward compatibility
-
-  // PDF document attachment (chat document Q&A)
-  const [attachedDocumentId, setAttachedDocumentId] = useState(null);
-  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
-
-  // Voice recording states
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const speechSynthesisRef = useRef(null);
-  const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const nextMessageIdRef = useRef(0);
 
   // Quick Answer Mode state
   const [quickAnswerMode, setQuickAnswerMode] = useState(false);
-
-  // Image upload states
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [analysisMode, setAnalysisMode] = useState('general');
-  const [showAnalysisModes, setShowAnalysisModes] = useState(false);
 
   // Chat Mode & Artifact Pane states
   const [chatMode, setChatMode] = useState(() => getInitialMode()); // "general" or "module_builder"
@@ -100,7 +76,7 @@ function ChatInterface({ mode }) {
 
   const loadChatHistory = async () => {
     try {
-      const response = await getChatHistory(20, chatMode);
+      const response = await getChatHistory(20, chatMode === "general" ? "" : chatMode);
       if (response.success && response.sessions) {
         // Sort sessions by updated_at in descending order (most recent first)
         const sortedSessions = [...response.sessions].sort((a, b) => {
@@ -234,169 +210,27 @@ function ChatInterface({ mode }) {
     }
   }, [messages]);
 
-  // Handle image selection
-  const handleImageSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
-        return;
-      }
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Image is too large. Maximum size is 10MB.');
-        return;
-      }
-      setSelectedImage(file);
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-      setShowAnalysisModes(true); // Show analysis mode selector
-    }
-  };
 
-  // Handle camera capture
-  const handleCameraCapture = async () => {
-    try {
-      const capturedImage = await captureFromCamera();
-      setSelectedImage(capturedImage);
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(capturedImage);
-      setImagePreview(previewUrl);
-      setShowAnalysisModes(true); // Show analysis mode selector
-    } catch (error) {
-      if (error.message !== 'Camera capture cancelled') {
-        alert('Failed to access camera. Please ensure camera permissions are granted.');
-      }
-    }
-  };
 
-  // PDF upload: attach document for chat Q&A
-  const handlePdfSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      alert("Please select a PDF file.");
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      alert("PDF is too large. Maximum size is 20MB.");
-      return;
-    }
-    const sessionId = currentSessionId || `session_${Date.now()}`;
-    if (!currentSessionId) setCurrentSessionId(sessionId);
-    const userMsgId = `msg-${Date.now()}-${nextMessageIdRef.current++}`;
-    setMessages((m) => [
-      ...m,
-      { id: userMsgId, from: "teacher", text: `Uploaded: ${file.name}`, pdfName: file.name },
-    ]);
-    setIsUploadingPdf(true);
-    try {
-      const data = await uploadPdf(file, sessionId);
-      if (data.success && data.document_id) {
-        setAttachedDocumentId(data.document_id);
-        const botMsgId = `msg-${Date.now()}-${nextMessageIdRef.current++}`;
-        setMessages((m) => [
-          ...m,
-          {
-            id: botMsgId,
-            from: "bot",
-            text: data.summary || "Document ready. You can ask questions about it.",
-            data: { success: true, tool_used: "document_ready", result: { summary: data.summary, document_id: data.document_id }, confidence: 0.95 },
-            tool_used: "document_ready",
-            confidence: 0.95,
-          },
-        ]);
-      } else {
-        setMessages((m) => [...m, { id: `msg-${Date.now()}`, from: "bot", text: data.error || "PDF processing failed." }]);
-      }
-      await loadChatHistory();
-    } catch (err) {
-      const errMsg = err.response?.data?.detail || err.message || "PDF processing failed.";
-      setMessages((m) => [...m, { id: `msg-${Date.now()}`, from: "bot", text: errMsg }]);
-    } finally {
-      setIsUploadingPdf(false);
-      if (attachInputRef.current) attachInputRef.current.value = "";
-    }
-  };
-
-  // Single attach handler: image or PDF
-  const handleAttachChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const isPdf = file.type === "application/pdf";
-    const isImage = ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type);
-    if (isPdf) {
-      await handlePdfSelect({ target: { files: [file] } });
-    } else if (isImage) {
-      handleImageSelect({ target: { files: [file] } });
-    } else {
-      alert("Please select an image (JPEG, PNG, GIF, WebP) or a PDF file.");
-    }
-    e.target.value = "";
-  };
-
-  // Clear selected image
-  const clearImage = () => {
-    setSelectedImage(null);
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-    setImagePreview(null);
-    setShowAnalysisModes(false);
-    setAnalysisMode('general');
-    if (attachInputRef.current) {
-      attachInputRef.current.value = '';
-    }
-  };
-
-  // Convert file to data URL so image stays valid after blob URL is revoked
-  const fileToDataUrl = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error("Failed to read image"));
-      reader.readAsDataURL(file);
-    });
-
-  // Send message with optional image
+  // Send message
   const sendMessage = async () => {
-    if ((!input.trim() && !selectedImage) || isLoading || isUploadingPdf) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
     const userMessageId = `msg-${Date.now()}-${nextMessageIdRef.current++}`;
     const botMessageId = `msg-${Date.now()}-${nextMessageIdRef.current++}`;
 
-    // Use durable data URL for message so image still renders after we revoke the blob
-    let messageImageUrl = imagePreview;
-    if (selectedImage) {
-      try {
-        messageImageUrl = await fileToDataUrl(selectedImage);
-      } catch {
-        messageImageUrl = imagePreview;
-      }
-    }
-
-    // Add user message with image (data URL so it persists after clearImage revokes blob)
+    // Add user message
     setMessages((m) => [
       ...m,
       {
         id: userMessageId,
         from: "teacher",
-        text: userMessage || "Please analyze this image",
-        image: messageImageUrl || undefined,
-        imageName: selectedImage?.name,
+        text: userMessage,
       },
     ]);
 
-    const currentImage = selectedImage;
-    const currentImagePreview = imagePreview;
-    const currentAnalysisMode = analysisMode;
-
     setInput("");
-    clearImage();
     // Add these 3 lines right after setInput("")
     if (inputRef.current) {
       inputRef.current.style.height = "auto";
@@ -404,7 +238,6 @@ function ChatInterface({ mode }) {
     setIsLoading(true);
 
     try {
-
       // Use existing session ID or create new one
       const sessionId = currentSessionId || `session_${Date.now()}`;
       if (!currentSessionId) {
@@ -413,36 +246,36 @@ function ChatInterface({ mode }) {
 
       let data;
       
-      // If image is selected, use vision API
-      if (currentImage) {
-        data = await analyzeImage(
-          currentImage,
-          userMessage || "Please analyze this image and provide educational insights",
-          sessionId,
-          currentAnalysisMode
-        );
-      } else {
-        // Call the orchestrator API with session ID (include document_id when PDF is attached)
-        const context = {
-          session_id: sessionId,
-          quick_answer_mode: quickAnswerMode,
-        };
-        if (attachedDocumentId) context.document_id = attachedDocumentId;
-        if (chatMode !== "general") {
-          context.selected_tool = chatMode;
-          if (chatMode === "module_builder" && activeLessonId) {
-            context.lesson_id = activeLessonId;
-          }
+      // Call the orchestrator API with session ID
+      const context = {
+        session_id: sessionId,
+        quick_answer_mode: quickAnswerMode,
+      };
+      
+      let activeTool = chatMode;
+      if (activeTool === "general") {
+        const text = userMessage.toLowerCase();
+        if (text.includes("module") || text.includes("lesson plan") || text.includes("lesson_plan")) {
+          activeTool = "module_builder";
+        } else if (text.includes("activity")) {
+          activeTool = "activity_generator";
+        } else {
+          activeTool = "expert_teacher";
         }
-        data = await queryOrchestrator(userMessage, context);
       }
+
+      if (activeTool !== "general") {
+        context.selected_tool = activeTool;
+        if (activeTool === "module_builder" && activeLessonId) {
+          context.lesson_id = activeLessonId;
+        }
+      }
+      data = await queryOrchestrator(userMessage, context);
 
       // Extract text for fallback display
       let botResponseText = "";
       if (data.success && data.result) {
-        if (data.result.response != null && data.tool_used === "vision_analysis") {
-          botResponseText = data.result.response;
-        } else if (data.result.explanation) {
+        if (data.result.explanation) {
           botResponseText = data.result.explanation;
         } else if (data.result.activity_name) {
           botResponseText = data.result.description;
@@ -508,78 +341,6 @@ function ChatInterface({ mode }) {
     }
   };
 
-  const handleTopicSelect = async (className, subject, topicName) => {
-    setIsLoading(true);
-    const userMessage = `Generate module for chapter: ${topicName}`;
-    const userMsgId = `msg-${Date.now()}-${nextMessageIdRef.current++}`;
-    const botMsgId = `msg-${Date.now()}-${nextMessageIdRef.current++}`;
-    
-    setMessages((m) => [
-      ...m,
-      {
-        id: userMsgId,
-        from: "teacher",
-        text: userMessage,
-      },
-    ]);
-    
-    const sessionId = currentSessionId || `session_${Date.now()}`;
-    if (!currentSessionId) setCurrentSessionId(sessionId);
-    
-    try {
-      const context = {
-        session_id: sessionId,
-        selected_tool: "module_builder",
-        class_name: className,
-        subject: subject,
-        topic: topicName,
-      };
-      
-      const data = await queryOrchestrator(userMessage, context);
-      
-      let botResponseText = "";
-      if (data.success && data.result) {
-        botResponseText = data.result.response || "Module generated.";
-      } else {
-        botResponseText = data.error || "Sorry, failed to generate module.";
-      }
-      
-      setMessages((m) => [
-        ...m,
-        {
-          id: botMsgId,
-          from: "bot",
-          text: botResponseText,
-          data: data,
-          tool_used: data.tool_used,
-          confidence: data.confidence,
-        },
-      ]);
-      
-      if (data.success && data.result && data.result.status === "preview_module") {
-        setActiveArtifactLesson(data.result.lesson);
-        setActiveArtifactAssignment(data.result.assignment);
-        setActiveLessonId(data.result.lesson_id);
-        setShowArtifact(true);
-        setActiveArtifactTab("lesson");
-      }
-      
-      await loadChatHistory();
-    } catch (error) {
-      console.error("Error generating module:", error);
-      setMessages((m) => [
-        ...m,
-        {
-          id: `msg-${Date.now()}-${nextMessageIdRef.current++}`,
-          from: "bot",
-          text: `Error generating module: ${error.message}`,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -600,125 +361,6 @@ function ChatInterface({ mode }) {
       inputRef.current.style.height = "auto";
     }
   }, [input]);
-
-  // Start voice recording - using only Sarvam AI
-  const startRecording = async () => {
-    try {
-      // Clear input field when starting new recording
-      setInput("");
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/wav",
-        });
-
-        if (audioChunksRef.current.length > 0) {
-          setIsProcessingVoice(true);
-          try {
-            const { transcript } = await transcribeAudio(audioBlob, {
-              mode: "transcribe",
-              languageCode: "unknown",
-            });
-            if (transcript) {
-              setInput(transcript.trim());
-            }
-          } catch (error) {
-            console.error("Sarvam STT error:", error);
-            alert("Failed to transcribe audio. Please try again.");
-          } finally {
-            setIsProcessingVoice(false);
-          }
-        }
-
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-      alert("Microphone access denied. Please enable microphone permissions.");
-    }
-  };
-
-  // Stop voice recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  // Text-to-Speech handler
-  const speakText = async (text, messageId) => {
-    // Stop any currently speaking message
-    if (speechSynthesisRef.current) {
-      if (speechSynthesisRef.current instanceof Audio) {
-        speechSynthesisRef.current.pause();
-        speechSynthesisRef.current.currentTime = 0;
-      }
-      speechSynthesisRef.current = null;
-    }
-
-    try {
-      // Silently limit to 2500 characters (API limit)
-      const truncatedText = text.length > 2500
-        ? text.substring(0, 2500)
-        : text;
-
-      const audio = await textToSpeechAndPlay(truncatedText, {
-        onPlay: () => setSpeakingMessageId(messageId),
-        onEnd: () => {
-          setSpeakingMessageId(null);
-          speechSynthesisRef.current = null;
-        },
-      });
-      speechSynthesisRef.current = audio;
-    } catch (error) {
-      console.error("TTS error:", error);
-      alert(`Failed to generate speech: ${error.message}`);
-    }
-  };
-
-  // Stop speaking
-  const stopSpeaking = () => {
-    if (speechSynthesisRef.current) {
-      if (speechSynthesisRef.current instanceof Audio) {
-        speechSynthesisRef.current.pause();
-        speechSynthesisRef.current = null;
-      } else {
-        window.speechSynthesis.cancel();
-      }
-      setSpeakingMessageId(null);
-      speechSynthesisRef.current = null;
-    }
-  };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
-      }
-      if (speechSynthesisRef.current) {
-        if (speechSynthesisRef.current instanceof Audio) {
-          speechSynthesisRef.current.pause();
-        }
-      }
-    };
-  }, [isRecording]);
 
   return (
     <div className="h-full min-h-0 bg-[#FFFFFF] flex flex-col relative overflow-hidden">
@@ -1117,70 +759,7 @@ function ChatInterface({ mode }) {
                               From cache
                             </span>
                           )}
-                          <button
-                            onClick={() => {
-                              if (speakingMessageId === message.id) {
-                                stopSpeaking();
-                              } else {
-                                // Extract text for TTS
-                                let textToSpeak = message.text;
-                                if (message.data?.result) {
-                                  if (message.data.result.explanation) {
-                                    textToSpeak =
-                                      message.data.result.explanation;
-                                  } else if (
-                                    message.data.result.activity_name
-                                  ) {
-                                    textToSpeak = `Activity: ${message.data.result.activity_name}. ${message.data.result.description}`;
-                                  }
-                                }
-                                speakText(textToSpeak, message.id);
-                              }
-                            }}
-                            className="p-1.5 border-2 border-[#000000] rounded bg-white hover:bg-[#FDE047] transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5"
-                            title={
-                              speakingMessageId === message.id
-                                ? "Stop speaking"
-                                : "Listen to response"
-                            }
-                            aria-label="Voice output"
-                          >
-                            {speakingMessageId === message.id ? (
-                              <svg
-                                className="w-4 h-4 text-[#000000]"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
-                                />
-                              </svg>
-                            ) : (
-                              <svg
-                                className="w-4 h-4 text-[#000000]"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                                />
-                              </svg>
-                            )}
-                          </button>
+
                         </div>
                         <div className="w-full px-1 py-1">
                           <ResponseFormatter
@@ -1257,187 +836,7 @@ function ChatInterface({ mode }) {
           {/* Input Area */}
           <div className="flex-shrink-0 border-t-2 border-[#000000] bg-[#FFFFFF] px-4 py-2">
             <div className="max-w-5xl mx-auto">
-              {/* Image Preview */}
-              {imagePreview && (
-                <div className="mb-2 relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="h-20 w-auto rounded-lg border-2 border-[#000000] shadow-[2px_2px_0px_0px_#000000]"
-                  />
-                  <button
-                    onClick={clearImage}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full border-2 border-[#000000] flex items-center justify-center hover:bg-red-600 transition-colors"
-                    title="Remove image"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <span className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-60 text-white px-1 rounded">
-                    {selectedImage?.name?.slice(0, 15)}...
-                  </span>
-                </div>
-              )}
-              
-              {/* Analysis mode selector - appears when image is selected */}
-              {showAnalysisModes && (
-                <div className="mb-3 p-3 border-2 border-[#000000] rounded-lg bg-[#F0F9FF] shadow-[2px_2px_0px_0px_#000000]">
-                  <label className="text-sm font-bold text-[#000000] mb-2 block">
-                    🔍 Analysis Mode:
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {[
-                      { value: 'general', label: '📚 General', desc: 'All-purpose analysis' },
-                      { value: 'ocr', label: '📝 Text Extraction', desc: 'Extract all text' },
-                      { value: 'handwriting', label: '✍️ Handwriting', desc: 'Analyze student writing' },
-                      { value: 'diagram', label: '📊 Diagram', desc: 'Explain charts/diagrams' },
-                      { value: 'grading', label: '📋 Grade Work', desc: 'Grade student work' },
-                    ].map((mode) => (
-                      <button
-                        key={mode.value}
-                        onClick={() => setAnalysisMode(mode.value)}
-                        className={`p-2 border-2 border-[#000000] rounded-lg text-xs font-bold transition-all shadow-[1px_1px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 ${
-                          analysisMode === mode.value
-                            ? 'bg-[#A7F3D0] text-[#000000]'
-                            : 'bg-white text-[#000000] hover:bg-[#FDE047]'
-                        }`}
-                        title={mode.desc}
-                      >
-                        <div className="text-center">
-                          <div className="text-sm mb-1">{mode.label}</div>
-                          <div className="text-xs opacity-70">{mode.desc}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-[#000000] opacity-60 mt-2 text-center">
-                    Choose analysis type for better results
-                  </p>
-                </div>
-              )}
-              
               <div className="flex items-end gap-3 border-2 border-[#000000] rounded-lg px-3 py-3 bg-white shadow-[2px_2px_0px_0px_#000000]">
-                <input
-                  type="file"
-                  ref={attachInputRef}
-                  onChange={handleAttachChange}
-                  accept="image/jpeg,image/png,image/gif,image/webp,.pdf,application/pdf"
-                  className="hidden"
-                />
-                <button
-                  onClick={() => attachInputRef.current?.click()}
-                  disabled={isUploadingPdf}
-                  className={`p-1.5 border-2 border-[#000000] rounded transition-all flex-shrink-0 ${
-                    selectedImage || attachedDocumentId ? "bg-[#A7F3D0]" : "bg-white hover:bg-[#FDE047]"
-                  } ${isUploadingPdf ? "opacity-60 cursor-not-allowed" : ""}`}
-                  title={
-                    isUploadingPdf
-                      ? "Uploading..."
-                      : selectedImage || attachedDocumentId
-                        ? "Image or document attached"
-                        : "Attach image or PDF"
-                  }
-                  aria-label="Attach image or PDF"
-                >
-                  {isUploadingPdf ? (
-                    <svg className="w-4 h-4 text-[#000000] animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 text-[#000000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                    </svg>
-                  )}
-                </button>
-                {/* Camera capture button */}
-                <button
-                  onClick={handleCameraCapture}
-                  className={`p-1.5 border-2 border-[#000000] rounded transition-all flex-shrink-0 ${
-                    selectedImage ? 'bg-[#A7F3D0]' : 'bg-white hover:bg-[#FDE047]'
-                  }`}
-                  title="Capture from camera"
-                  aria-label="Capture from camera"
-                >
-                  <svg
-                    className="w-4 h-4 text-[#000000]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => {
-                    if (isRecording) {
-                      stopRecording();
-                    } else if (!isProcessingVoice) {
-                      startRecording();
-                    }
-                  }}
-                  disabled={isProcessingVoice}
-                  className={`p-1.5 border-2 border-[#000000] rounded transition-all flex-shrink-0 ${isRecording
-                    ? "bg-red-500 hover:bg-red-600 animate-pulse"
-                    : isProcessingVoice
-                      ? "bg-gray-300 cursor-not-allowed"
-                      : "bg-white hover:bg-[#FDE047]"
-                    }`}
-                  title={
-                    isRecording
-                      ? "Click to stop recording"
-                      : "Click to record voice"
-                  }
-                  aria-label="Voice input"
-                >
-                  {isProcessingVoice ? (
-                    <svg
-                      className="w-4 h-4 text-[#000000] animate-spin"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="w-4 h-4 text-[#000000]"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                      />
-                    </svg>
-                  )}
-                </button>
                 <textarea
                   ref={inputRef}
                   value={input}
@@ -1515,28 +914,12 @@ function ChatInterface({ mode }) {
                          onChange={(e) => {
                            const mode = e.target.value;
                            setChatMode(mode);
-                           if (mode === "module_builder") {
-                             if (!input.trim()) {
-                               setInput("Create a module for Class 7 Geography");
-                             }
-                           } else if (mode === "crisis_handler") {
-                             setInput("A student is throwing tantrums in class. How should I respond?");
-                           } else if (mode === "activity_generator") {
+                           if (mode === "module_builder" && !input.trim()) {
+                             setInput("Create a module for Class 7 Geography");
+                           } else if (mode === "activity_generator" && !input.trim()) {
                              setInput("Generate a classroom activity for Class 8 Mathematics");
-                           } else if (mode === "classroom_guidance") {
-                             setInput("I just finished teaching algebra. Plan my next reflection and guidance.");
-                           } else if (mode === "teacher_motivation") {
-                             setInput("I am feeling a bit burned out today. Give me some encouragement.");
-                           } else if (mode === "content_explainer") {
-                             setInput("Explain the process of photosynthesis for class 6 students.");
-                           } else if (mode === "expert_teacher") {
+                           } else if (mode === "expert_teacher" && !input.trim()) {
                              setInput("How do you teach quantum physics concepts to high schoolers?");
-                           } else if (mode === "quick_answer") {
-                             setInput("What is the capital of France?");
-                           } else if (mode === "resource_finder") {
-                             setInput("Find educational resources on Newtonian mechanics.");
-                           } else if (mode === "feedback_response") {
-                             setInput("The student did well but struggled with fractions.");
                            }
                          }}
                          className="px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-white text-[#000000] transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] focus:outline-none cursor-pointer"
@@ -1545,14 +928,7 @@ function ChatInterface({ mode }) {
                          <option value="general">💬 General Assistant</option>
                          <option value="module_builder">📚 Module Creator</option>
                          <option value="activity_generator">🪁 Activity Generator</option>
-                         <option value="crisis_handler">🚨 Crisis Handler</option>
-                         <option value="teacher_motivation">💪 Teacher Motivation</option>
-                         <option value="content_explainer">📖 Content Explainer</option>
-                         <option value="classroom_guidance">🏫 Classroom Guidance</option>
                          <option value="expert_teacher">🎓 Expert Teacher</option>
-                         <option value="quick_answer">⚡ Quick Answer</option>
-                         <option value="resource_finder">🔍 Resource Finder</option>
-                         <option value="feedback_response">💬 Feedback Response</option>
                        </select>
                      </div>
                    ) : (

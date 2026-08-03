@@ -102,16 +102,16 @@ AVAILABLE TOOLS:
    - Gratitude (thank you, thanks, appreciate it)
    - Small talk, casual conversation, out-of-scope or general queries
    - Any general knowledge, educational questions, calculations, facts, definitions, or general teaching questions
-   - Concept explanations that are NOT specifically asking for textbook/NCERT content.
-   **When in doubt or when queries do not specifically mention NCERT/textbooks or ask for activities, use this tool.**
+   - Concept explanations that are NOT specifically asking for lesson plans or activities.
+   **When in doubt or when queries do not specifically mention lesson planning or activities, use this tool.**
 
-2. "content_explainer" - Use ONLY when the teacher specifically mentions NCERT or asks for school textbook-based content/lessons (e.g. "Explain NCERT Chapter 5").
+2. "module_builder" - Use when the teacher asks for a "module", "lesson plan", "curriculum", "syllabus", or structured lesson content/slides.
 
 3. "activity_generator" - Use when the teacher explicitly wants a hands-on activity, game, plan, demonstration, or interactive exercise. Must contain keywords or intent for "activity", "game", "demonstration", "exercise".
 
 ANALYZE THE QUERY AND RESPOND WITH JSON:
 {
-    "selected_tool": "expert_teacher" or "content_explainer" or "activity_generator",
+    "selected_tool": "expert_teacher" or "module_builder" or "activity_generator",
     "reasoning": "Brief explanation of why this tool was selected",
     "extracted_topic": "The main topic or concept or query intent",
     "confidence": 0.95
@@ -119,7 +119,7 @@ ANALYZE THE QUERY AND RESPOND WITH JSON:
 
 RULES:
 - Return ONLY valid JSON
-- Do NOT select any other tools. You must choose exactly one of: "expert_teacher", "content_explainer", "activity_generator".
+- Do NOT select any other tools. You must choose exactly one of: "expert_teacher", "module_builder", "activity_generator".
 - Default to "expert_teacher" for general questions, greetings, gratitude, and general teaching support.
 - Extract the main topic/concept or query intent clearly."""
 
@@ -674,11 +674,11 @@ Language:""")]
 
         # Check for keyword-based overrides
         query_lower = query.lower()
-        if "module" in query_lower:
+        if "module" in query_lower or "lesson plan" in query_lower or "lesson_plan" in query_lower:
             self.logger.info("keyword_routing_override", tool="module_builder", query=query)
             return {
                 "selected_tool": "module_builder",
-                "tool_reasoning": "Keyword override: 'module' mentioned in query",
+                "tool_reasoning": "Keyword override: 'module' or 'lesson plan' mentioned in query",
                 "intent": query,
                 "confidence": 1.0,
             }
