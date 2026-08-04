@@ -253,16 +253,7 @@ function ChatInterface({ mode }) {
       };
       
       let activeTool = chatMode;
-      if (activeTool === "general") {
-        const text = userMessage.toLowerCase();
-        if (text.includes("module") || text.includes("lesson plan") || text.includes("lesson_plan")) {
-          activeTool = "module_builder";
-        } else if (text.includes("activity")) {
-          activeTool = "activity_generator";
-        } else {
-          activeTool = "expert_teacher";
-        }
-      }
+
 
       if (activeTool !== "general") {
         context.selected_tool = activeTool;
@@ -363,7 +354,7 @@ function ChatInterface({ mode }) {
   }, [input]);
 
   return (
-    <div className="h-full min-h-0 bg-[#FFFFFF] flex flex-col relative overflow-hidden">
+    <div className="absolute inset-0 w-full bg-[#FFFFFF] flex flex-col overflow-hidden">
       {/* Background Image with very low opacity */}
       <div
         className="absolute inset-0 pointer-events-none"

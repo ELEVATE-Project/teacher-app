@@ -107,7 +107,10 @@ AVAILABLE TOOLS:
 
 2. "module_builder" - Use when the teacher asks for a "module", "lesson plan", "curriculum", "syllabus", or structured lesson content/slides.
 
-3. "activity_generator" - Use when the teacher explicitly wants a hands-on activity, game, plan, demonstration, or interactive exercise. Must contain keywords or intent for "activity", "game", "demonstration", "exercise".
+3. "activity_generator" - Use when the teacher explicitly wants a hands-on activity, game, plan, demonstration, or interactive exercise. 
+
+CRITICAL INSTRUCTION FOR FOLLOW-UPS:
+If the user's query is a short follow-up or modification request (e.g., "make it easier", "add more time", "change step 2", "make it for 5 year olds"), you MUST read the Previous Conversation context to determine what they are modifying. If they are modifying an activity you previously generated, you MUST route to "activity_generator". If modifying a module, route to "module_builder".
 
 ANALYZE THE QUERY AND RESPOND WITH JSON:
 {
@@ -120,7 +123,6 @@ ANALYZE THE QUERY AND RESPOND WITH JSON:
 RULES:
 - Return ONLY valid JSON
 - Do NOT select any other tools. You must choose exactly one of: "expert_teacher", "module_builder", "activity_generator".
-- Default to "expert_teacher" for general questions, greetings, gratitude, and general teaching support.
 - Extract the main topic/concept or query intent clearly."""
 
 
@@ -672,24 +674,7 @@ Language:""")]
                 "confidence": 1.0,
             }
 
-        # Check for keyword-based overrides
-        query_lower = query.lower()
-        if "module" in query_lower or "lesson plan" in query_lower or "lesson_plan" in query_lower:
-            self.logger.info("keyword_routing_override", tool="module_builder", query=query)
-            return {
-                "selected_tool": "module_builder",
-                "tool_reasoning": "Keyword override: 'module' or 'lesson plan' mentioned in query",
-                "intent": query,
-                "confidence": 1.0,
-            }
-        elif "activity" in query_lower:
-            self.logger.info("keyword_routing_override", tool="activity_generator", query=query)
-            return {
-                "selected_tool": "activity_generator",
-                "tool_reasoning": "Keyword override: 'activity' mentioned in query",
-                "intent": query,
-                "confidence": 1.0,
-            }
+
             
         # Check if quick_answer_mode is enabled
         quick_answer_mode = context.get("quick_answer_mode", False)
@@ -1065,6 +1050,33 @@ TIPS: {', '.join(activity_output.get('tips', [])) if activity_output.get('tips')
         
         try:
             tool = self.tools[tool_name]
+            
+            # For activity_generator: inject previous activity from storage
+            # so modification requests edit in-place instead of generating new
+            if tool_name == "activity_generator" and self.storage:
+                try:
+                    prev_messages = await self.storage.get_messages(
+                        state["session_id"], limit=10
+                    )
+                    for msg in reversed(prev_messages):
+                        if msg["role"] == "assistant" and msg.get("metadata"):
+                            meta = msg["metadata"]
+                            if (meta.get("tool_used") == "activity_generator" 
+                                    and meta.get("result")):
+                                context["previous_activity"] = meta["result"]
+                                self.logger.info(
+                                    "previous_activity_injected",
+                                    session_id=state["session_id"],
+                                    activity_name=meta["result"].get(
+                                        "activity_name", "unknown"
+                                    )
+                                )
+                                break
+                except Exception as e:
+                    self.logger.warning(
+                        "previous_activity_lookup_failed",
+                        error=str(e)
+                    )
             
             self.logger.info("tool_execution_start",
                 tool=tool_name,
