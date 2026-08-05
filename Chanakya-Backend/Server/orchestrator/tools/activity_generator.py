@@ -227,6 +227,53 @@ Topic: "Gravity and falling objects"
 - The activity must directly teach the concept, not just be vaguely related to it"""
 
 
+ACTIVITY_MODIFIER_PROMPT = """You are an expert educational activity editor for classroom settings.
+
+You are given an EXISTING activity and a teacher's MODIFICATION REQUEST.
+Your job is to apply ONLY the requested changes and return the complete modified activity.
+
+=== CRITICAL RULES ===
+- Make ONLY the changes the teacher explicitly asked for
+- Do NOT change the activity name unless the teacher asks to rename it
+- Do NOT change the theme, concept, or overall approach
+- Do NOT change materials unless the modification requires it
+- Do NOT rewrite steps that the teacher did not mention
+- Keep the same JSON structure as the original activity
+- Preserve the original activity's style, tone, and level of detail
+- If merging steps, combine their content logically and renumber remaining steps
+- If simplifying steps, keep the same physical/hands-on nature
+- If adding steps, match the style of existing steps
+
+=== MODIFICATION TYPES YOU MAY ENCOUNTER ===
+1. MERGE STEPS: Combine two or more steps into one (e.g., "merge step 6 and 7")
+2. SIMPLIFY: Make specific steps easier or shorter
+3. ADD STEPS: Insert new steps at specific positions
+4. REMOVE STEPS: Delete specific steps
+5. CHANGE DURATION: Adjust timing
+6. CHANGE MATERIALS: Swap or add materials
+7. REORDER: Move steps around
+8. MODIFY CONTENT: Change what a specific step says
+
+=== OUTPUT FORMAT ===
+Return a JSON object with the COMPLETE modified activity:
+{
+    "activity_name": "Same name as original (unless asked to change)",
+    "description": "Same or slightly adjusted description",
+    "materials_needed": ["same materials unless changed"],
+    "steps": ["Step 1: ...", "Step 2: ..."],
+    "duration_minutes": 10,
+    "learning_outcome": "Same or slightly adjusted",
+    "tips": ["Same tips unless changed"]
+}
+
+=== RULES ===
+- Return ONLY valid JSON
+- Return the COMPLETE activity, not just the changed parts
+- Steps must be renumbered sequentially after any merge/delete/add
+- Keep physical, hands-on nature of all steps"""
+
+
+
 class ActivityGeneratorTool:
     """
     Tool for generating simple classroom activities to help students understand concepts.
@@ -258,6 +305,9 @@ class ActivityGeneratorTool:
         """
         start_time = time.time()
         
+        # Check if this is a modification request (previous activity exists)
+        previous_activity = context.get("previous_activity") if context else None
+        
         # Build the prompt with context if provided
         context_str = ""
         if context:
@@ -268,11 +318,32 @@ class ActivityGeneratorTool:
             if context.get("constraints"):
                 context_str += f"\nAdditional constraints: {context['constraints']}"
         
-        user_prompt = f"Create a simple, hands-on classroom activity for the topic: {topic}"
-        if context_str:
-            user_prompt += f"\n\nContext:{context_str}"
-        
-        user_prompt += "\n\nRemember: The activity MUST be physical and interactive. Students must DO something with their hands or body. Be SPECIFIC in every step - describe exactly what students physically do. The activity must directly teach the concept."
+        if previous_activity:
+            # MODIFICATION MODE: Edit existing activity in-place
+            print("=" * 60)
+            print("🔧 MODIFICATION MODE ACTIVATED")
+            print(f"   Modifying: {previous_activity.get('activity_name', 'Unknown')}")
+            print(f"   Request:   {topic}")
+            print("=" * 60)
+            user_prompt = f"""TEACHER'S MODIFICATION REQUEST: {topic}
+
+EXISTING ACTIVITY TO MODIFY:
+{json.dumps(previous_activity, indent=2)}
+
+Apply ONLY the requested change to the existing activity above. Return the complete modified activity as JSON."""
+            if context_str:
+                user_prompt += f"\n\nContext:{context_str}"
+            
+            system_prompt = ACTIVITY_MODIFIER_PROMPT
+        else:
+            # GENERATION MODE: Create new activity from scratch
+            user_prompt = f"Create a simple, hands-on classroom activity for the topic: {topic}"
+            if context_str:
+                user_prompt += f"\n\nContext:{context_str}"
+            
+            user_prompt += "\n\nRemember: The activity MUST be physical and interactive. Students must DO something with their hands or body. Be SPECIFIC in every step - describe exactly what students physically do. The activity must directly teach the concept."
+            
+            system_prompt = ACTIVITY_GENERATOR_PROMPT
         
         try:
             response = await self.client.aio.models.generate_content(
@@ -284,8 +355,8 @@ class ActivityGeneratorTool:
                     )
                 ],
                 config=types.GenerateContentConfig(
-                    system_instruction=ACTIVITY_GENERATOR_PROMPT,
-                    temperature=0.7,
+                    system_instruction=system_prompt,
+                    temperature=0.3 if previous_activity else 0.7,
                     max_output_tokens=8192,
                     response_mime_type="application/json"
                 )

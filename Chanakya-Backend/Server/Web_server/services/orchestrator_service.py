@@ -167,7 +167,7 @@ class OrchestratorService:
                 selected_tool = "general_conversation"
                 
             # Enforce strict scope in locked modes
-            is_in_scope, warning_msg = await self._check_query_scope(query_request.query, selected_tool)
+            is_in_scope, warning_msg = await self._check_query_scope(query_request.query, selected_tool, query_request.session_id)
             if not is_in_scope:
                 # Save user message to database history
                 if query_request.session_id and self.orchestrator.storage:
@@ -462,7 +462,7 @@ class OrchestratorService:
             logger.error(f"Error deleting session: {str(e)}")
             return False
 
-    async def _check_query_scope(self, query: str, tool_name: str) -> tuple[bool, str]:
+    async def _check_query_scope(self, query: str, tool_name: str, session_id: str = None) -> tuple[bool, str]:
         """
         Verify if the query is in scope for the strictly locked mode.
         Returns: (is_in_scope, warning_message)
@@ -496,15 +496,32 @@ class OrchestratorService:
             return True, ""
 
         scope_info = tool_scopes[tool_name]
+        
+        history_str = ""
+        if session_id and self.orchestrator.storage:
+            try:
+                # Get last 4 messages to understand context for follow-up queries
+                messages = await self.orchestrator.storage.get_messages(session_id, limit=4)
+                if messages:
+                    history_str = "Recent Conversation History:\n"
+                    # reverse to get chronological order (if storage returns newest first, depends on implementation. 
+                    # Assuming it returns oldest first or newest first, we just dump them)
+                    for msg in reversed(messages):
+                        history_str += f"{msg['role'].capitalize()}: {msg['content']}\n"
+                    history_str += "\n"
+            except Exception as e:
+                logger.error(f"Failed to fetch context for scope check: {str(e)}")
+
         prompt = f"""You are an educational assistant quality checker.
 The current chat interface is strictly locked to: '{scope_info["friendly"]}' which is for: {scope_info["desc"]}.
-The teacher entered this query: "{query}"
 
-Determine if this query is relevant to this locked scope or if it is asking for something completely different (like classroom crisis management, teacher motivation, resource finder, or general unrelated topics).
+{history_str}The teacher entered this current query: "{query}"
+
+Determine if this query is relevant to this locked scope or if it is asking for something completely different (like classroom crisis management, teacher motivation, resource finder, or general unrelated topics). Note that if the query is a follow-up or modification request related to the ongoing conversation history, it IS relevant.
 
 Answer with ONLY "YES" or "NO".
 
-Is the query within the scope of '{scope_info["friendly"]}'?"""
+Is the current query within the scope of '{scope_info["friendly"]}'?"""
 
         try:
             from google.genai import types
