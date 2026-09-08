@@ -873,78 +873,11 @@ function ChatInterface({ mode }) {
                 </button>
               </div>
 
-              {/* Controls Footer with Mode Selector and Quick Mode */}
-              <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Quick Answer Mode Toggle */}
-                  <button
-                    onClick={() => setQuickAnswerMode(!quickAnswerMode)}
-                    className={`flex items-center gap-2 px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 ${quickAnswerMode
-                      ? "bg-[#A7F3D0] text-[#000000]"
-                      : "bg-white text-[#000000]"
-                      }`}
-                    title={quickAnswerMode ? "Quick Answer Mode: ON" : "Quick Answer Mode: OFF"}
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    <span>Quick Mode</span>
-                    {quickAnswerMode && (
-                      <span className="text-xs bg-[#000000] text-white px-2 py-0.5 rounded-full">
-                        ON
-                      </span>
-                    )}
-                  </button>
-
-                   {/* Chat Mode Selector Dropdown */}
-                   {!lockedMode ? (
-                     <div className="flex items-center gap-2">
-                       <select
-                         value={chatMode}
-                         onChange={(e) => {
-                           const mode = e.target.value;
-                           setChatMode(mode);
-                           if (mode === "module_builder" && !input.trim()) {
-                             setInput("Create a module for Class 7 Geography");
-                           } else if (mode === "activity_generator" && !input.trim()) {
-                             setInput("Generate a classroom activity for Class 8 Mathematics");
-                           } else if (mode === "expert_teacher" && !input.trim()) {
-                             setInput("How do you teach quantum physics concepts to high schoolers?");
-                           }
-                         }}
-                         className="px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-white text-[#000000] transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] focus:outline-none cursor-pointer"
-                         aria-label="Chat Mode"
-                       >
-                         <option value="general">💬 General Assistant</option>
-                         <option value="module_builder">📚 Module Creator</option>
-                         <option value="activity_generator">🪁 Activity Generator</option>
-                         <option value="expert_teacher">🎓 Expert Teacher</option>
-                       </select>
-                     </div>
-                   ) : (
-                     <div className="flex items-center gap-2 px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-[#F3F4F6] text-[#000000] shadow-[2px_2px_0px_0px_#000000]">
-                        <span>
-                          {lockedMode === "general" && "🤖 Orchestrator Mode"}
-                          {lockedMode === "module_builder" && "📚 Module Creator Locked"}
-                          {lockedMode === "expert_teacher" && "🎓 Expert Q&A Locked"}
-                          {lockedMode === "activity_generator" && "🪁 Activity Generator Locked"}
-                          {lockedMode !== "general" && lockedMode !== "module_builder" && lockedMode !== "expert_teacher" && lockedMode !== "activity_generator" && `🔒 ${lockedMode} Mode Locked`}
-                        </span>
-                      </div>
-                   )}
-
-                  {/* Reopen Preview Button */}
-                  {!showArtifact && (activeArtifactLesson || activeArtifactAssignment) && (
+              {/* Controls Footer */}
+              {!showArtifact && (activeArtifactLesson || activeArtifactAssignment) && (
+                <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Reopen Preview Button */}
                     <button
                       onClick={() => setShowArtifact(true)}
                       className="flex items-center gap-2 px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-[#D4F1C5] text-[#000000] transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5"
@@ -971,15 +904,9 @@ function ChatInterface({ mode }) {
                       </svg>
                       <span>Open Preview</span>
                     </button>
-                  )}
+                  </div>
                 </div>
-
-                {quickAnswerMode && (
-                  <span className="text-xs text-[#000000] opacity-70">
-                    Fast, short answers
-                  </span>
-                )}
-              </div>
+              )}
 
               {/* <p className="text-xs text-[#000000] opacity-60 mt-1 text-center">
                 Chanakya can make mistakes. Check important info.

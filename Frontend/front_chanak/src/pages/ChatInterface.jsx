@@ -52,31 +52,19 @@ function ChatInterface({ mode }) {
   const [activeLessonId, setActiveLessonId] = useState(null);
   const [isCollapsibleChatMinimized, setIsCollapsibleChatMinimized] = useState(false);
 
-  // Load chat history on mount and when chatMode changes
+  // Load chat history on mount
   useEffect(() => {
     loadChatHistory();
-  }, [chatMode]);
+  }, []);
 
-  // Set and lock chat mode based on prop or URL query params
+  // Initialize
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    let activeMode = mode;
-
-    if (params.has("activity")) {
-      activeMode = "activity_generator";
-    } else if (params.get("mode")) {
-      activeMode = params.get("mode");
-    }
-
-    const finalMode = activeMode || "general";
-    setChatMode(finalMode);
-    setLockedMode(finalMode);
-    console.log(`[DEBUG] Active Screen: Chat Interface | Route: ${window.location.pathname}${window.location.search} | Mode Activated: ${finalMode}`);
+    console.log(`[DEBUG] Active Screen: Chat Interface | Route: ${window.location.pathname}${window.location.search}`);
   }, [mode, window.location.pathname, window.location.search]);
 
   const loadChatHistory = async () => {
     try {
-      const response = await getChatHistory(20, chatMode === "general" ? "" : chatMode);
+      const response = await getChatHistory(20);
       if (response.success && response.sessions) {
         // Sort sessions by updated_at in descending order (most recent first)
         const sortedSessions = [...response.sessions].sort((a, b) => {
@@ -251,15 +239,9 @@ function ChatInterface({ mode }) {
         session_id: sessionId,
         quick_answer_mode: quickAnswerMode,
       };
-      
-      let activeTool = chatMode;
 
-
-      if (activeTool !== "general") {
-        context.selected_tool = activeTool;
-        if (activeTool === "module_builder" && activeLessonId) {
-          context.lesson_id = activeLessonId;
-        }
+      if (activeLessonId) {
+        context.lesson_id = activeLessonId;
       }
       data = await queryOrchestrator(userMessage, context);
 
@@ -642,48 +624,22 @@ function ChatInterface({ mode }) {
                          </svg>
                        ),
                      },
-                     {
-                       name: "Post-class Planner",
-                       mode: "classroom_guidance",
-                       color: "#E8D5FF",
-                       icon: (
-                         <svg
-                           className="w-4 h-4"
-                           fill="none"
-                           stroke="currentColor"
-                           viewBox="0 0 24 24"
-                         >
-                           <path
-                             strokeLinecap="round"
-                             strokeLinejoin="round"
-                             strokeWidth={2}
-                             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                           />
-                         </svg>
-                       ),
-                     },
                    ].filter(feature => {
-                       const allowedModes = ["module_builder", "expert_teacher", "activity_generator"];
-                       if (!allowedModes.includes(feature.mode)) return false;
-                       return (!lockedMode || lockedMode === "general") ? true : feature.mode === lockedMode;
-                     })
+                     const allowedModes = ["activity_generator", "module_builder", "expert_teacher"];
+                     return allowedModes.includes(feature.mode);
+                   })
                     .map((feature) => (
                      <button
                        key={feature.name}
                        className="p-3 rounded-lg border-2 border-[#000000] text-left transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5"
                        style={{ backgroundColor: feature.color }}
                        onClick={() => {
-                          if (lockedMode !== "general") {
-                            setChatMode(feature.mode);
-                          }
                           if (feature.mode === "module_builder") {
                             setInput("Create a module for Class 7 Geography");
                           } else if (feature.mode === "crisis_handler") {
                             setInput("A student is throwing tantrums in class. How should I respond?");
                           } else if (feature.mode === "activity_generator") {
                             setInput("Generate a classroom activity for Class 8 Mathematics");
-                          } else if (feature.mode === "classroom_guidance") {
-                            setInput("I just finished teaching algebra. Plan my next reflection and guidance.");
                           } else if (feature.mode === "expert_teacher") {
                             setInput("How do you teach quantum physics concepts to high schoolers?");
                           } else {
@@ -864,78 +820,11 @@ function ChatInterface({ mode }) {
                 </button>
               </div>
 
-              {/* Controls Footer with Mode Selector and Quick Mode */}
-              <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Quick Answer Mode Toggle */}
-                  <button
-                    onClick={() => setQuickAnswerMode(!quickAnswerMode)}
-                    className={`flex items-center gap-2 px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 ${quickAnswerMode
-                      ? "bg-[#A7F3D0] text-[#000000]"
-                      : "bg-white text-[#000000]"
-                      }`}
-                    title={quickAnswerMode ? "Quick Answer Mode: ON" : "Quick Answer Mode: OFF"}
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    <span>Quick Mode</span>
-                    {quickAnswerMode && (
-                      <span className="text-xs bg-[#000000] text-white px-2 py-0.5 rounded-full">
-                        ON
-                      </span>
-                    )}
-                  </button>
-
-                   {/* Chat Mode Selector Dropdown */}
-                   {!lockedMode ? (
-                     <div className="flex items-center gap-2">
-                       <select
-                         value={chatMode}
-                         onChange={(e) => {
-                           const mode = e.target.value;
-                           setChatMode(mode);
-                           if (mode === "module_builder" && !input.trim()) {
-                             setInput("Create a module for Class 7 Geography");
-                           } else if (mode === "activity_generator" && !input.trim()) {
-                             setInput("Generate a classroom activity for Class 8 Mathematics");
-                           } else if (mode === "expert_teacher" && !input.trim()) {
-                             setInput("How do you teach quantum physics concepts to high schoolers?");
-                           }
-                         }}
-                         className="px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-white text-[#000000] transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] focus:outline-none cursor-pointer"
-                         aria-label="Chat Mode"
-                       >
-                         <option value="general">💬 General Assistant</option>
-                         <option value="module_builder">📚 Module Creator</option>
-                         <option value="activity_generator">🪁 Activity Generator</option>
-                         <option value="expert_teacher">🎓 Expert Teacher</option>
-                       </select>
-                     </div>
-                   ) : (
-                     <div className="flex items-center gap-2 px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-[#F3F4F6] text-[#000000] shadow-[2px_2px_0px_0px_#000000]">
-                        <span>
-                          {lockedMode === "general" && "🤖 Orchestrator Mode"}
-                          {lockedMode === "module_builder" && "📚 Module Creator Locked"}
-                          {lockedMode === "expert_teacher" && "🎓 Expert Q&A Locked"}
-                          {lockedMode === "activity_generator" && "🪁 Activity Generator Locked"}
-                          {lockedMode !== "general" && lockedMode !== "module_builder" && lockedMode !== "expert_teacher" && lockedMode !== "activity_generator" && `🔒 ${lockedMode} Mode Locked`}
-                        </span>
-                      </div>
-                   )}
-
-                  {/* Reopen Preview Button */}
-                  {!showArtifact && (activeArtifactLesson || activeArtifactAssignment) && (
+              {/* Controls Footer */}
+              {!showArtifact && (activeArtifactLesson || activeArtifactAssignment) && (
+                <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Reopen Preview Button */}
                     <button
                       onClick={() => setShowArtifact(true)}
                       className="flex items-center gap-2 px-3 py-1.5 border-2 border-[#000000] rounded-lg font-bold text-sm bg-[#D4F1C5] text-[#000000] transition-all shadow-[2px_2px_0px_0px_#000000] hover:shadow-[1px_1px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5"
@@ -962,15 +851,9 @@ function ChatInterface({ mode }) {
                       </svg>
                       <span>Open Preview</span>
                     </button>
-                  )}
+                  </div>
                 </div>
-
-                {quickAnswerMode && (
-                  <span className="text-xs text-[#000000] opacity-70">
-                    Fast, short answers
-                  </span>
-                )}
-              </div>
+              )}
 
               {/* <p className="text-xs text-[#000000] opacity-60 mt-1 text-center">
                 Chanakya can make mistakes. Check important info.
